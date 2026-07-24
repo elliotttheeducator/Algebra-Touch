@@ -241,27 +241,46 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .scale-string.r{left:auto;right:2px;}
 
 /* ── CHIP BUILDER ── */
-#chipBuilder{display:none;flex-direction:column;gap:.5rem;background:var(--board3);border-top:3px solid var(--wood3);padding:.7rem 1.2rem;position:relative;z-index:5;}
+#chipBuilder{display:none;flex-direction:column;gap:.5rem;background:var(--board3);border-top:3px solid var(--wood3);padding:.8rem 1.2rem;position:relative;z-index:5;}
 #chipBuilder.on{display:flex;}
-.cb-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center;}
-.cb-op{background:#181400;color:var(--gold);border:1px solid rgba(232,200,64,.25);border-radius:6px;min-width:42px;height:38px;font-family:'Courier New',monospace;font-size:1.05rem;font-weight:700;cursor:pointer;transition:background .12s;}
+.cb-main{display:flex;align-items:center;justify-content:center;gap:1.1rem;flex-wrap:wrap;}
+
+.cb-ops{display:grid;grid-template-columns:repeat(3,40px);gap:4px;}
+.cb-op{background:#181400;color:var(--gold);border:1px solid rgba(232,200,64,.25);border-radius:6px;height:36px;font-family:'Courier New',monospace;font-size:1.05rem;font-weight:700;cursor:pointer;transition:background .12s,opacity .15s;}
 .cb-op:hover{background:#221c00;}
 .cb-op.active{background:var(--gold);color:var(--wood3);}
-.cb-operand{width:110px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-bottom:2px solid rgba(255,255,255,.3);color:var(--chalk);padding:7px 10px;border-radius:5px;font-family:'Caveat',cursive;font-size:1.15rem;outline:none;text-align:center;}
+.cb-op:disabled{opacity:.3;cursor:default;background:#181400;}
+
+.cb-entry{display:flex;flex-direction:column;gap:4px;align-items:center;}
+.cb-operand{width:130px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-bottom:2px solid rgba(255,255,255,.3);color:var(--chalk);padding:6px 8px;border-radius:5px;font-family:'Caveat',cursive;font-size:1.3rem;outline:none;text-align:center;}
 .cb-operand:focus{border-bottom-color:var(--gold);}
 .cb-operand:disabled{opacity:.35;}
-.cb-pad{display:grid;grid-template-columns:repeat(4,32px);gap:3px;}
-.cb-key{background:#1e1e1e;color:#e0e0e0;border:1px solid #2a2a2a;border-bottom:2px solid #000;border-radius:4px;height:30px;font-family:'Courier New',monospace;font-size:.85rem;cursor:pointer;}
+.cb-pad{display:grid;grid-template-columns:repeat(4,30px);gap:3px;}
+.cb-key{background:#1e1e1e;color:#e0e0e0;border:1px solid #2a2a2a;border-bottom:2px solid #000;border-radius:4px;height:28px;font-family:'Courier New',monospace;font-size:.8rem;cursor:pointer;transition:opacity .15s;}
 .cb-key:hover{background:#272727;}
-.cb-build{background:var(--gold);color:var(--wood3);border:none;padding:8px 20px;border-radius:5px;font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;}
-.cb-build:hover{filter:brightness(1.1);}
-.cb-preview{font-family:'Caveat',cursive;font-size:1.3rem;color:var(--gold);min-height:1.6rem;text-align:center;flex:1;}
-.chip-tray{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;min-height:44px;align-items:center;}
-.op-chip{display:inline-flex;align-items:center;justify-content:center;padding:6px 18px;border-radius:20px;border:2px solid var(--gold);color:var(--gold);background:rgba(232,200,64,.08);font-family:'Caveat',cursive;font-size:1.4rem;cursor:grab;box-shadow:0 3px 12px rgba(232,200,64,.25);transition:transform .1s,opacity .15s;}
-.op-chip:hover{transform:translateY(-2px);}
-.op-chip.applied-lhs.applied-rhs{opacity:.35;cursor:default;}
-.chip-ghost{position:fixed;pointer-events:none;z-index:9999;display:inline-flex;align-items:center;justify-content:center;padding:6px 18px;border-radius:20px;border:2px solid var(--gold);color:var(--gold);background:rgba(20,28,20,.9);font-family:'Caveat',cursive;font-size:1.4rem;box-shadow:0 8px 26px rgba(0,0,0,.5);transform:translate(-50%,-50%);white-space:nowrap;}
-.chip-hint{font-size:.7rem;color:var(--chalk3);text-align:center;}
+.cb-key:disabled{opacity:.3;cursor:default;background:#1e1e1e;}
+
+.cb-arrow{font-size:1.6rem;color:var(--chalk3);opacity:.6;flex-shrink:0;}
+
+/* The tile — large, live-updating, and the thing you actually drag */
+.cb-tile{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  min-width:170px;height:92px;padding:0 32px;border-radius:16px;
+  border:3px solid var(--gold);color:var(--gold);background:rgba(232,200,64,.1);
+  font-family:'Caveat',cursive;font-size:2.8rem;cursor:grab;
+  box-shadow:0 6px 22px rgba(232,200,64,.28);
+  transition:transform .1s,opacity .15s,border-color .2s,color .2s,background .2s,box-shadow .2s;
+}
+.cb-tile:hover{transform:translateY(-2px);}
+.cb-tile.empty{
+  border-style:dashed;border-color:rgba(255,255,255,.25);color:var(--chalk3);
+  background:transparent;box-shadow:none;cursor:default;font-size:1.2rem;transform:none;
+}
+.cb-tile.done{opacity:.35;cursor:default;transform:none;}
+.cb-tile .side-ticks{position:absolute;top:8px;left:0;right:0;display:flex;justify-content:center;gap:8px;font-size:.68rem;letter-spacing:.05em;color:var(--chalk3);}
+.cb-tile .side-ticks .tick.hit{color:var(--col-grab);}
+.chip-ghost{position:fixed;pointer-events:none;z-index:9999;display:inline-flex;align-items:center;justify-content:center;padding:14px 34px;border-radius:16px;border:3px solid var(--gold);color:var(--gold);background:rgba(20,28,20,.92);font-family:'Caveat',cursive;font-size:2.8rem;box-shadow:0 8px 26px rgba(0,0,0,.5);transform:translate(-50%,-50%);white-space:nowrap;}
+.chip-hint{font-size:.75rem;color:var(--chalk3);text-align:center;}
 
 </style>
 </head>
@@ -363,35 +382,41 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
   </div>
 </div>
 <div id="chipBuilder" class="on">
-  <div class="cb-row">
-    <button class="cb-op" data-op="+" type="button">+</button>
-    <button class="cb-op" data-op="-" type="button">−</button>
-    <button class="cb-op" data-op="*" type="button">×</button>
-    <button class="cb-op" data-op="/" type="button">÷</button>
-    <button class="cb-op" data-op="^" type="button">^</button>
-    <button class="cb-op" data-op="sqrt" type="button">√</button>
-    <input class="cb-operand" id="cbOperand" placeholder="number" inputmode="decimal" autocomplete="off">
-    <button class="cb-build" id="cbBuild" type="button">Build</button>
-  </div>
-  <div class="cb-row">
-    <div class="cb-pad">
-      <button class="cb-key" data-d="7" type="button">7</button>
-      <button class="cb-key" data-d="8" type="button">8</button>
-      <button class="cb-key" data-d="9" type="button">9</button>
-      <button class="cb-key" data-d="del" type="button">⌫</button>
-      <button class="cb-key" data-d="4" type="button">4</button>
-      <button class="cb-key" data-d="5" type="button">5</button>
-      <button class="cb-key" data-d="6" type="button">6</button>
-      <button class="cb-key" data-d="." type="button">.</button>
-      <button class="cb-key" data-d="1" type="button">1</button>
-      <button class="cb-key" data-d="2" type="button">2</button>
-      <button class="cb-key" data-d="3" type="button">3</button>
-      <button class="cb-key" data-d="0" type="button">0</button>
+  <div class="cb-main">
+    <div class="cb-ops">
+      <button class="cb-op" data-op="+" type="button">+</button>
+      <button class="cb-op" data-op="-" type="button">−</button>
+      <button class="cb-op" data-op="*" type="button">×</button>
+      <button class="cb-op" data-op="/" type="button">÷</button>
+      <button class="cb-op" data-op="^" type="button">^</button>
+      <button class="cb-op" data-op="sqrt" type="button">√</button>
     </div>
-    <div class="cb-preview" id="cbPreview">Pick an operation…</div>
+    <div class="cb-entry">
+      <input class="cb-operand" id="cbOperand" placeholder="type a number" inputmode="decimal" autocomplete="off">
+      <div class="cb-pad">
+        <button class="cb-key" data-d="7" type="button">7</button>
+        <button class="cb-key" data-d="8" type="button">8</button>
+        <button class="cb-key" data-d="9" type="button">9</button>
+        <button class="cb-key" data-d="del" type="button">⌫</button>
+        <button class="cb-key" data-d="4" type="button">4</button>
+        <button class="cb-key" data-d="5" type="button">5</button>
+        <button class="cb-key" data-d="6" type="button">6</button>
+        <button class="cb-key" data-d="." type="button">.</button>
+        <button class="cb-key" data-d="1" type="button">1</button>
+        <button class="cb-key" data-d="2" type="button">2</button>
+        <button class="cb-key" data-d="3" type="button">3</button>
+        <button class="cb-key" data-d="0" type="button">0</button>
+      </div>
+    </div>
+    <div class="cb-arrow">→</div>
+    <div class="cb-tile empty" id="cbTile" title="Drag onto a side">
+      <div class="side-ticks" id="cbTicks" style="display:none;">
+        <span class="tick" id="tickL">L</span><span class="tick" id="tickR">R</span>
+      </div>
+      <span id="cbTileLabel">?</span>
+    </div>
   </div>
-  <div class="chip-tray" id="chipTray"></div>
-  <div class="chip-hint">Build an operation, then drag the chip onto a side. Do it to both sides to keep the scale level.</div>
+  <div class="chip-hint" id="chipHint">Pick an operation and a number, then drag the tile onto a side.</div>
 </div>
 <div class="modal-overlay" id="balanceModal" style="display:none;">
   <div class="modal">
@@ -687,6 +712,23 @@ class Engine{
     if(n.type==='pow'){
       if(n.exp instanceof Atom&&n.exp.val==='1')return n.base;
       if(n.exp instanceof Atom&&n.exp.val==='0')return new Atom('1');
+      // Power of a power: (base^m)^n → base^(m*n) — this is what makes
+      // √(x²) collapse to x (m=2, n=1/2 → combined exponent 1).
+      if(n.base.type==='pow'){
+        const combined=this.multiplyExponents(n.base.exp,n.exp);
+        if(combined)return this.sFullN(new PowNode(n.base.base,combined));
+      }
+      // Power distributes over a product: (a·b·…)^n → a^n · b^n · …
+      if(n.base.type==='mult'){
+        const parts=n.base.children.map(c=>this.sFullN(new PowNode(this.restore(c),this.restore(n.exp))));
+        return this.sFullN(new OpNode('mult',parts));
+      }
+      // Power distributes over a quotient: (a/b)^n → a^n / b^n
+      if(n.base.type==='div'){
+        const newNum=this.sFullN(new PowNode(this.restore(n.base.num),this.restore(n.exp)));
+        const newDen=this.sFullN(new PowNode(this.restore(n.base.den),this.restore(n.exp)));
+        return this.sFullN(new DivNode(newNum,newDen));
+      }
       if(n.base instanceof Atom&&!isNaN(n.base.val)){
         const base=parseFloat(n.base.val);
         if(n.exp instanceof Atom&&!isNaN(n.exp.val)){
@@ -708,6 +750,28 @@ class Engine{
   // GCD helper
   gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b];}return a;}
 
+  // Read a simple numeric exponent (integer atom or integer/integer div) as a [num,den] fraction.
+  // Returns null if the exponent isn't in a form we can safely combine (e.g. contains a variable).
+  expToFrac(e){
+    if(e instanceof Atom&&!isNaN(e.val))return[parseFloat(e.val),1];
+    if(e.type==='div'&&e.num instanceof Atom&&!isNaN(e.num.val)&&e.den instanceof Atom&&!isNaN(e.den.val))
+      return[parseFloat(e.num.val),parseFloat(e.den.val)];
+    return null;
+  }
+  fracToExpNode(num,den){
+    if(den<0){num=-num;den=-den;}
+    const g=this.gcd(num,den)||1;
+    num/=g;den/=g;
+    return den===1?new Atom(this.fmt(num)):new DivNode(new Atom(this.fmt(num)),new Atom(this.fmt(den)));
+  }
+  // Combine (base^e1)^e2's exponents into a single e1*e2 — used for power-of-a-power,
+  // most commonly a root undoing a power like √(x²) → x^(2·1/2) → x^1 → x.
+  multiplyExponents(e1,e2){
+    const f1=this.expToFrac(e1),f2=this.expToFrac(e2);
+    if(!f1||!f2)return null;
+    return this.fracToExpNode(f1[0]*f2[0],f1[1]*f2[1]);
+  }
+
   // Is this a fractional exponent (like 1/2 inside sqrt)? If so, skip simplify check on it.
   isFracExp(n,parentNode){
     return parentNode&&parentNode.type==='pow'&&parentNode.exp===n&&
@@ -724,22 +788,28 @@ class Engine{
       if(den!==0&&Number.isInteger(num/den))return true;
       return false;
     }
-    if(n.type==='pow'&&n.base instanceof Atom&&!isNaN(n.base.val)){
-      const base=parseFloat(n.base.val);
-      // Integer exponent → standard pow check
-      if(n.exp instanceof Atom&&!isNaN(n.exp.val)){
-        const res=Math.pow(base,parseFloat(n.exp.val));
-        if(Number.isInteger(res)&&Math.abs(res)<1e9)return true;
-        return false;
-      }
-      // Fractional exponent 1/k → surd: check if base is a perfect k-th power
-      if(n.exp.type==='div'&&
-         n.exp.num instanceof Atom&&n.exp.num.val==='1'&&
-         n.exp.den instanceof Atom&&!isNaN(n.exp.den.val)){
-        const k=parseFloat(n.exp.den.val);
-        if(k>=2&&Number.isInteger(k)){
-          const res=Math.pow(base,1/k);
-          if(Math.abs(res-Math.round(res))<1e-9&&Math.abs(res)<1e9)return true;
+    if(n.type==='pow'){
+      // Power of a power/product/quotient — e.g. √(x²), (2x)³, (x/y)² — is always
+      // worth a Simplify pass; power-of-power only if the exponents actually combine.
+      if(n.base.type==='mult'||n.base.type==='div')return true;
+      if(n.base.type==='pow'&&this.multiplyExponents(n.base.exp,n.exp))return true;
+      if(n.base instanceof Atom&&!isNaN(n.base.val)){
+        const base=parseFloat(n.base.val);
+        // Integer exponent → standard pow check
+        if(n.exp instanceof Atom&&!isNaN(n.exp.val)){
+          const res=Math.pow(base,parseFloat(n.exp.val));
+          if(Number.isInteger(res)&&Math.abs(res)<1e9)return true;
+          return false;
+        }
+        // Fractional exponent 1/k → surd: check if base is a perfect k-th power
+        if(n.exp.type==='div'&&
+           n.exp.num instanceof Atom&&n.exp.num.val==='1'&&
+           n.exp.den instanceof Atom&&!isNaN(n.exp.den.val)){
+          const k=parseFloat(n.exp.den.val);
+          if(k>=2&&Number.isInteger(k)){
+            const res=Math.pow(base,1/k);
+            if(Math.abs(res-Math.round(res))<1e-9&&Math.abs(res)<1e9)return true;
+          }
         }
       }
     }
@@ -1594,19 +1664,20 @@ class Engine{
 // ══════════════════════════════════════
 let MODE='balance'; // 'cross' | 'balance'
 const bal={
-  op:null,        // selected op tile while building a chip: '+','-','*','/','^','sqrt'
-  pending:null,   // {op,operand,el,appliedL,appliedR} — the one chip currently in play
-  snapshot:null   // last fully-balanced {lhs,rhs}, restored if a chip is abandoned mid-way
+  op:null,          // selected op tile: '+','-','*','/','^','sqrt'
+  operand:'',        // typed/tapped number, as a string
+  appliedL:false,    // has the current op/operand been applied to LHS?
+  appliedR:false,    // ...to RHS?
+  snapshot:null       // last fully-balanced {lhs,rhs}, restored if a tile is abandoned mid-way
 };
 
 function setMode(m){
   if(m===MODE)return;
-  if(MODE==='balance'&&bal.pending&&!(bal.pending.appliedL&&bal.pending.appliedR)){
+  if(MODE==='balance'&&(bal.appliedL||bal.appliedR)&&!(bal.appliedL&&bal.appliedR)){
     if(bal.snapshot){
       engine.state.lhs=engine.restore(bal.snapshot.lhs);
       engine.state.rhs=engine.restore(bal.snapshot.rhs);
     }
-    bal.pending=null;
     engine.showToast('Switched modes — the half-applied operation was reset.');
   }
   MODE=m;
@@ -1643,12 +1714,9 @@ function balSnapshot(){
 }
 
 function resetChipUI(){
-  bal.pending=null;bal.op=null;
-  document.getElementById('chipTray').innerHTML='';
+  bal.op=null;bal.operand='';bal.appliedL=false;bal.appliedR=false;
   document.getElementById('cbOperand').value='';
-  document.getElementById('cbOperand').disabled=false;
-  document.getElementById('cbPreview').textContent='Pick an operation…';
-  document.querySelectorAll('.cb-op').forEach(x=>x.classList.remove('active'));
+  refreshTile();
 }
 
 // ── SCALE ──
@@ -1684,74 +1752,97 @@ function balAnnounce(){
 }
 
 // ── CHIP BUILDER ──
-document.querySelectorAll('.cb-op').forEach(b=>{
-  b.onclick=()=>{
-    bal.op=b.dataset.op;
-    document.querySelectorAll('.cb-op').forEach(x=>x.classList.toggle('active',x===b));
-    const operandEl=document.getElementById('cbOperand');
-    operandEl.disabled=(bal.op==='sqrt');
-    if(bal.op==='sqrt')operandEl.value='';
-    updateChipPreview();
-  };
-});
-document.querySelectorAll('.cb-key[data-d]').forEach(b=>{
-  b.onclick=()=>{
-    const inp=document.getElementById('cbOperand');
-    if(inp.disabled)return;
-    if(b.dataset.d==='del') inp.value=inp.value.slice(0,-1);
-    else if(b.dataset.d==='.'){ if(!inp.value.includes('.')) inp.value+='.'; }
-    else inp.value+=b.dataset.d;
-    updateChipPreview();
-  };
-});
-document.getElementById('cbOperand').addEventListener('input',updateChipPreview);
-
+// The tile is one persistent, live-updating element: pick an operation,
+// type or tap a number, and the tile itself becomes the draggable thing —
+// no separate "build" step or tray.
 function chipLabel(op,operand){
   const sym={'+':'+','-':'−','*':'×','/':'÷','^':'^'};
   if(op==='sqrt')return'√';
   if(!operand)return(sym[op]||'')+'?';
   return(sym[op]||'')+operand;
 }
-function updateChipPreview(){
-  const inp=document.getElementById('cbOperand');
-  const prev=document.getElementById('cbPreview');
-  if(bal.pending&&!(bal.pending.appliedL&&bal.pending.appliedR)){
-    prev.textContent='Drag the chip onto a side →';return;
-  }
-  if(!bal.op){ prev.textContent='Pick an operation…'; return; }
-  prev.textContent=chipLabel(bal.op,inp.value.trim());
+function operandInvalidReason(op,operand){
+  if(op==='sqrt')return null;
+  if(!operand||isNaN(operand))return'Enter a number for the tile.';
+  const v=parseFloat(operand);
+  if(op==='/'&&v===0)return"Can't divide by 0.";
+  if(op==='*'&&v===0)return'Multiplying by 0 loses information — pick another number.';
+  return null;
 }
 
-document.getElementById('cbBuild').onclick=()=>{
-  if(bal.pending&&!(bal.pending.appliedL&&bal.pending.appliedR)){
-    engine.showToast('Finish applying the current chip to both sides first.');
+function refreshTile(){
+  const tile=document.getElementById('cbTile');
+  const label=document.getElementById('cbTileLabel');
+  const ticks=document.getElementById('cbTicks');
+  const hint=document.getElementById('chipHint');
+  const midFlight=bal.appliedL||bal.appliedR;
+
+  document.querySelectorAll('.cb-op').forEach(b=>{
+    b.disabled=midFlight;
+    b.classList.toggle('active',b.dataset.op===bal.op);
+  });
+  document.querySelectorAll('.cb-key').forEach(b=>b.disabled=midFlight);
+  document.getElementById('cbOperand').disabled=midFlight||bal.op==='sqrt';
+
+  if(midFlight){
+    ticks.style.display='flex';
+    document.getElementById('tickL').classList.toggle('hit',bal.appliedL);
+    document.getElementById('tickR').classList.toggle('hit',bal.appliedR);
+    label.textContent=chipLabel(bal.op,bal.operand);
+    tile.classList.remove('empty');
+    tile.classList.toggle('done',bal.appliedL&&bal.appliedR);
+    hint.textContent=(bal.appliedL&&bal.appliedR)?'Balanced — resetting…':'Drag the tile onto the other side to match it.';
     return;
   }
-  if(!bal.op){ engine.showToast('Pick an operation first.'); return; }
-  const operand=document.getElementById('cbOperand').value.trim();
-  if(bal.op!=='sqrt'){
-    if(!operand||isNaN(operand)){ engine.showToast('Enter a number for the chip.'); return; }
-    if(bal.op==='/'&&parseFloat(operand)===0){ engine.showToast("Can't divide by 0."); return; }
-    if(bal.op==='*'&&parseFloat(operand)===0){ engine.showToast("Multiplying by 0 loses information — pick another number."); return; }
-  }
-  buildChip(bal.op,operand);
-};
 
-function buildChip(op,operand){
-  const tray=document.getElementById('chipTray');
-  tray.innerHTML='';
-  const chip=document.createElement('div');
-  chip.className='op-chip';
-  chip.innerHTML=`<span class="chip-txt">${chipLabel(op,operand)}</span>`;
-  chip.onmousedown=e=>{e.preventDefault();dragChip(e,chip);};
-  tray.appendChild(chip);
-  bal.pending={op,operand,el:chip,appliedL:false,appliedR:false};
-  document.getElementById('cbPreview').textContent='Drag the chip onto a side →';
+  ticks.style.display='none';
+  tile.classList.remove('done');
+  const invalidReason=bal.op?operandInvalidReason(bal.op,bal.operand):null;
+  if(!bal.op||invalidReason){
+    tile.classList.add('empty');
+    label.textContent='?';
+    hint.textContent=invalidReason||'Pick an operation and a number, then drag the tile onto a side.';
+  }else{
+    tile.classList.remove('empty');
+    label.textContent=chipLabel(bal.op,bal.operand);
+    hint.textContent='Drag the tile onto a side.';
+  }
 }
 
-function dragChip(e,chipEl){
-  if(chipEl.classList.contains('applied-lhs')&&chipEl.classList.contains('applied-rhs'))return;
-  const label=chipEl.querySelector('.chip-txt').textContent;
+document.querySelectorAll('.cb-op').forEach(b=>{
+  b.onclick=()=>{
+    if(bal.appliedL||bal.appliedR)return;
+    bal.op=b.dataset.op;
+    if(bal.op==='sqrt'){bal.operand='';document.getElementById('cbOperand').value='';}
+    refreshTile();
+  };
+});
+document.querySelectorAll('.cb-key[data-d]').forEach(b=>{
+  b.onclick=()=>{
+    if(bal.appliedL||bal.appliedR)return;
+    const inp=document.getElementById('cbOperand');
+    if(inp.disabled)return;
+    if(b.dataset.d==='del') inp.value=inp.value.slice(0,-1);
+    else if(b.dataset.d==='.'){ if(!inp.value.includes('.')) inp.value+='.'; }
+    else inp.value+=b.dataset.d;
+    bal.operand=inp.value.trim();
+    refreshTile();
+  };
+});
+document.getElementById('cbOperand').addEventListener('input',()=>{
+  bal.operand=document.getElementById('cbOperand').value.trim();
+  refreshTile();
+});
+
+document.getElementById('cbTile').addEventListener('mousedown',e=>{
+  const tile=e.currentTarget;
+  if(tile.classList.contains('empty')||tile.classList.contains('done'))return;
+  e.preventDefault();
+  dragTile(e);
+});
+
+function dragTile(e){
+  const label=chipLabel(bal.op,bal.operand);
   const ghost=document.createElement('div');
   ghost.className='chip-ghost';
   ghost.textContent=label;
@@ -1777,30 +1868,26 @@ function dragChip(e,chipEl){
 }
 
 function applyChipToSide(sideKey){
-  const p=bal.pending;
-  if(!p)return;
-  const already=sideKey==='lhs'?p.appliedL:p.appliedR;
+  const already=sideKey==='lhs'?bal.appliedL:bal.appliedR;
   if(already){ engine.showToast('Already applied here — do the other side.'); return; }
 
   const cur=engine.state[sideKey];
-  const opAtom=()=>new Atom(String(p.operand));
+  const opAtom=()=>new Atom(String(bal.operand));
   let wrapped;
-  if(p.op==='+') wrapped=new OpNode('add',[cur,opAtom()]);
-  else if(p.op==='-') wrapped=new OpNode('add',[cur,new Atom(String(-parseFloat(p.operand)))]);
-  else if(p.op==='*') wrapped=new OpNode('mult',[cur,opAtom()]);
-  else if(p.op==='/') wrapped=new DivNode(cur,opAtom());
-  else if(p.op==='^') wrapped=new PowNode(cur,opAtom());
-  else if(p.op==='sqrt') wrapped=new PowNode(cur,new DivNode(new Atom('1'),new Atom('2')));
+  if(bal.op==='+') wrapped=new OpNode('add',[cur,opAtom()]);
+  else if(bal.op==='-') wrapped=new OpNode('add',[cur,new Atom(String(-parseFloat(bal.operand)))]);
+  else if(bal.op==='*') wrapped=new OpNode('mult',[cur,opAtom()]);
+  else if(bal.op==='/') wrapped=new DivNode(cur,opAtom());
+  else if(bal.op==='^') wrapped=new PowNode(cur,opAtom());
+  else if(bal.op==='sqrt') wrapped=new PowNode(cur,new DivNode(new Atom('1'),new Atom('2')));
 
   engine.state[sideKey]=engine.sStructN(wrapped);
-
-  if(sideKey==='lhs')p.appliedL=true; else p.appliedR=true;
-  p.el.classList.toggle('applied-lhs',p.appliedL);
-  p.el.classList.toggle('applied-rhs',p.appliedR);
+  if(sideKey==='lhs')bal.appliedL=true; else bal.appliedR=true;
 
   engine.render();
+  refreshTile();
 
-  if(p.appliedL&&p.appliedR){
+  if(bal.appliedL&&bal.appliedR){
     setScale('level');
     balSnapshot();
     engine.status('ok','Balanced again — nice work!');
@@ -1809,7 +1896,7 @@ function applyChipToSide(sideKey){
       resetChipUI();
     },900);
   }else{
-    const risesTouched=(p.op==='-'||p.op==='/'||p.op==='sqrt');
+    const risesTouched=(bal.op==='-'||bal.op==='/'||bal.op==='sqrt');
     const dir=sideKey==='lhs'
       ?(risesTouched?'tip-right':'tip-left')
       :(risesTouched?'tip-left':'tip-right');
