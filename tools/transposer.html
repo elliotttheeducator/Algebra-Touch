@@ -1,0 +1,1751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Algebra Touch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --board:#2c5e3f;--board2:#245034;--board3:#1b3d27;
+  --chalk:#f0ede4;--chalk2:#c8c4b8;--chalk3:#8a8780;
+  --wood:#6b3d1e;--wood2:#8b5e2a;--wood3:#3d2010;
+  --gold:#e8c840;--col-grab:#7de8a0;--col-lock:#f08888;
+  --green-glow:rgba(80,200,120,0.35);--drop-bg:rgba(80,200,120,0.13);
+  --drop-border:rgba(80,200,120,0.65);--cy:#f0d870;
+}
+html,body{height:100%}
+body{background:var(--board3);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;user-select:none;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.45;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");}
+.wood-frame{background:linear-gradient(180deg,var(--wood2) 0%,var(--wood) 50%,var(--wood3) 100%);padding:0 2rem;border-bottom:5px solid var(--wood3);box-shadow:0 4px 24px rgba(0,0,0,0.55);position:relative;z-index:10;}
+.wood-inner{display:flex;align-items:center;gap:1.5rem;padding:.9rem 0;flex-wrap:wrap;}
+.brand{font-family:'Caveat',cursive;font-size:1.7rem;font-weight:700;color:var(--chalk);text-shadow:1px 1px 4px rgba(0,0,0,0.5);white-space:nowrap;}
+.brand em{color:var(--gold);font-style:normal;}
+.input-row{display:flex;gap:8px;flex:1;max-width:580px;}
+.eq-in{flex:1;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-bottom:2px solid rgba(255,255,255,0.28);color:var(--chalk);padding:8px 14px;border-radius:5px;font-family:'Caveat',cursive;font-size:1.25rem;outline:none;transition:border-color .2s;}
+.eq-in:focus{border-color:var(--gold);}
+.btn{background:var(--gold);color:var(--wood3);border:none;padding:8px 22px;border-radius:5px;font-weight:700;font-size:.82rem;cursor:pointer;transition:filter .15s,transform .1s;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;}
+.btn:hover{filter:brightness(1.12);transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn.ghost{background:transparent;color:var(--chalk2);border:1px solid rgba(255,255,255,0.18);}
+.btn.ghost:hover{background:rgba(255,255,255,0.07);color:var(--chalk);}
+.guide{background:var(--board3);border-bottom:3px solid var(--wood3);display:flex;overflow-x:auto;position:relative;z-index:5;}
+.gi{flex:1;min-width:155px;padding:.6rem 1.1rem;border-right:1px solid rgba(255,255,255,0.055);font-size:.77rem;color:var(--chalk3);line-height:1.5;}
+.gi:last-child{border-right:none;}
+.gi strong{display:block;color:var(--cy);font-family:'Caveat',cursive;font-size:.88rem;margin-bottom:2px;}
+kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:.77em;color:var(--chalk2);}
+.blackboard{flex:1;display:flex;flex-direction:column;background:var(--board);position:relative;overflow:hidden;min-height:500px;}
+.blackboard::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(180deg,transparent 0,transparent 47px,rgba(255,255,255,0.02) 48px);}
+#inlineToast{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-family:'Caveat',cursive;font-size:1.3rem;color:rgba(240,237,228,0.8);pointer-events:none;white-space:nowrap;z-index:20;transition:opacity .35s;opacity:0;}
+#inlineToast.show{opacity:1;}
+.step-history{padding:1.2rem 3rem .5rem;display:flex;flex-direction:column;gap:.25rem;position:relative;z-index:1;pointer-events:none;min-height:80px;}
+.step-row{display:flex;align-items:center;justify-content:center;gap:1.5rem;font-family:'Caveat',cursive;color:rgba(240,237,228,.22);line-height:1;}
+.step-eq{color:rgba(240,237,228,.12);}
+.eq-stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;padding:1rem 1rem;gap:0;}
+.side{display:flex;align-items:center;justify-content:center;min-width:170px;min-height:110px;padding:2.5rem 2rem;border-radius:14px;border:2px dashed transparent;transition:border-color .2s,background .2s,box-shadow .25s;position:relative;}
+.side.drop-ready{border-color:var(--drop-border);background:var(--drop-bg);box-shadow:0 0 70px var(--green-glow);}
+.eq-center{display:flex;align-items:center;gap:.7rem;position:relative;z-index:2;margin:0 1.4rem;flex-shrink:0;}
+.eq-sign{font-family:'Caveat',cursive;font-size:4.5rem;color:var(--chalk2);cursor:pointer;transition:color .2s,transform .2s;line-height:1;padding:.1rem .3rem;border-radius:6px;flex-shrink:0;}
+.eq-sign:hover{color:var(--gold);transform:scale(1.1);}
+.action-zone{display:flex;align-items:center;justify-content:center;min-width:44px;flex-shrink:0;}
+.action-zone-outer{min-width:80px;}
+.action-btn{background:var(--gold);color:var(--wood3);border:none;border-radius:20px;padding:6px 14px;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;box-shadow:0 3px 14px rgba(0,0,0,0.4);animation:badge-pop .35s cubic-bezier(.175,.885,.32,1.4) both;}
+@keyframes badge-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.action-btn:hover{filter:brightness(1.12);}
+.katex{color:var(--chalk)!important;font-size:3rem!important;}
+.exp-sup .katex,.exp-frac .katex{font-size:1em!important;}
+.node{display:inline-flex;align-items:center;position:relative;color:var(--chalk);}
+.term-grab{cursor:grab;color:var(--chalk);transition:color .12s;border-radius:5px;padding:1px 3px;}
+.term-grab:hover,.term-grab:hover .katex{color:var(--col-grab)!important;}
+.term-lock{cursor:not-allowed;color:var(--chalk);transition:color .12s;border-radius:5px;padding:1px 3px;}
+.term-lock:hover,.term-lock:hover .katex{color:var(--col-lock)!important;}
+@keyframes wiggle{0%,100%{transform:translateX(0);}20%{transform:translateX(-3px);}50%{transform:translateX(3px);}75%{transform:translateX(-2px);}}
+.term-lock:hover{animation:wiggle .35s ease;}
+@keyframes dissolve{0%{opacity:1;filter:blur(0)}70%{opacity:.5;filter:blur(2px)}100%{opacity:0;filter:blur(5px)}}
+@keyframes chalkin{0%{opacity:0;filter:blur(4px);transform:scale(.88)}100%{opacity:1;filter:blur(0);transform:scale(1)}}
+.dissolving{animation:dissolve .38s ease-in forwards;}
+.chalkin{animation:chalkin .38s ease-out both;}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px;}
+.frac-line{width:100%;height:1.5px;background:currentColor;margin:3px 0;}
+.exp-sup{font-size:.55em;vertical-align:super;margin-left:1px;display:inline-flex;align-items:center;line-height:1;}
+.exp-frac{font-size:.48em;display:inline-flex;align-items:center;transform:translateY(-.9em);margin-left:1px;line-height:1;}
+.root-wrap{display:inline-flex;align-items:stretch;}
+.root-tick{width:16px;position:relative;margin-right:-1px;border-radius:4px 0 0 4px;padding:0 2px;flex-shrink:0;color:var(--chalk);transition:color .12s;}
+.root-tick.term-grab{cursor:grab;}.root-tick.term-grab:hover{color:var(--col-grab);}
+.root-tick.term-lock{cursor:not-allowed;}.root-tick.term-lock:hover{color:var(--col-lock);animation:wiggle .35s ease;}
+.root-svg{position:absolute;right:0;bottom:0;width:100%;height:100%;overflow:visible;}
+.root-content{border-top:1.5px solid currentColor;padding:3px 5px 0 3px;display:inline-flex;align-items:center;margin-top:9px;}
+.op-plus{font-family:'Caveat',cursive;font-size:3rem;line-height:1;color:var(--chalk2);margin:0 8px;display:inline-flex;align-items:center;pointer-events:none;}
+.neg-sign{font-family:'Caveat',cursive;font-size:3rem;line-height:1;margin-right:1px;display:inline-flex;align-items:center;color:inherit;}
+.chalk-tray{background:var(--board3);border-top:3px solid var(--wood3);padding:.45rem 1.2rem;display:flex;flex-direction:column;gap:.25rem;position:relative;z-index:5;}
+.tray-tips{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.72rem;color:var(--chalk3);}
+.tip{display:flex;align-items:center;gap:.3rem;}
+.tip-key{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.13);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:.72em;color:var(--chalk2);}
+.tip-sep{color:var(--chalk3);opacity:.4;}
+.tray-status{display:flex;align-items:center;gap:8px;}
+.s-dot{width:7px;height:7px;border-radius:50%;background:var(--chalk3);flex-shrink:0;transition:background .3s,box-shadow .3s;}
+.s-dot.ok{background:#50c878;box-shadow:0 0 7px #50c87870;}
+.s-dot.err{background:#e05555;box-shadow:0 0 7px #e0555570;}
+.s-txt{font-family:'Caveat',cursive;font-size:.95rem;transition:color .3s;color:var(--chalk3);}
+.s-txt.ok{color:#90e8a8;}.s-txt.err{color:#f09090;}
+.drag-ghost{position:fixed;pointer-events:none;z-index:9999;font-family:'Caveat',cursive;font-size:2.8rem;line-height:1;color:var(--chalk);text-shadow:0 2px 14px rgba(0,0,0,0.65),0 0 28px rgba(80,200,120,0.35);transform:translate(-50%,-58%) rotate(-3deg);white-space:nowrap;}
+.drag-ghost.inverse{color:var(--gold);text-shadow:0 2px 18px rgba(0,0,0,0.7),0 0 40px rgba(232,200,64,0.65);animation:ghost-cross .22s ease;}
+@keyframes ghost-cross{0%{transform:translate(-50%,-58%) rotate(-3deg) scale(1);}40%{transform:translate(-50%,-58%) rotate(4deg) scale(1.2);}100%{transform:translate(-50%,-58%) rotate(-3deg) scale(1);}}
+.sparkle{position:fixed;pointer-events:none;z-index:9998;border-radius:50%;animation:sparkle-fly var(--dur,.5s) ease-out forwards;}
+@keyframes sparkle-fly{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0;}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:2000;display:flex;align-items:center;justify-content:center;animation:mfade .2s ease both;}
+.modal-overlay.hiding{animation:mfade .18s ease reverse both;}
+@keyframes mfade{from{opacity:0}to{opacity:1}}
+.modal{background:var(--board2);border:2px solid rgba(220,80,80,.4);border-radius:18px;padding:2rem 2.4rem;max-width:360px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.65);animation:mpop .3s cubic-bezier(.175,.885,.32,1.4) both;}
+@keyframes mpop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-icon{font-size:2rem;margin-bottom:.7rem;}
+.modal-title{font-family:'Caveat',cursive;font-size:1.55rem;font-weight:700;color:var(--chalk);margin-bottom:.45rem;}
+.modal-msg{font-size:.88rem;color:var(--chalk2);line-height:1.58;margin-bottom:1rem;}
+.modal-hint{font-family:'Caveat',cursive;font-size:1rem;color:var(--cy);background:rgba(232,200,64,.1);border-radius:8px;padding:8px 12px;margin-bottom:1.1rem;}
+.modal-ok{background:var(--gold);color:var(--wood3);border:none;padding:9px 30px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.05em;}
+.modal-ok:hover{filter:brightness(1.1);}
+/* ── CALCULATOR KEYBOARD ── */
+
+/* Input row hides when calc opens — toggle button stays outside it */
+.input-row{ transition:max-height .3s ease, opacity .25s ease; max-height:60px; overflow:hidden; opacity:1; flex:1; min-width:0; }
+.input-row.kb-hidden{ max-height:0; opacity:0; pointer-events:none; }
+.kb-toggle-btn{ flex-shrink:0; }
+
+.calc-keyboard{
+  max-height:0; overflow:hidden;
+  transition:max-height .38s cubic-bezier(.4,0,.2,1);
+  background:#111; border-bottom:2px solid #000;
+  position:relative; z-index:8;
+}
+.calc-keyboard.open{ max-height:440px; }
+
+/* Preview */
+.calc-preview{
+  background:#0a0a0a; border-bottom:1px solid #1e1e1e;
+  padding:.5rem 1rem; min-height:3rem;
+  display:flex; align-items:center; gap:.7rem; overflow-x:auto; cursor:text;
+}
+.calc-preview-label{
+  font-family:monospace; font-size:.68rem; color:#444; letter-spacing:.12em;
+  text-transform:uppercase; white-space:nowrap; flex-shrink:0; user-select:none;
+}
+.calc-preview-math{
+  flex:1; display:flex; align-items:center; flex-wrap:nowrap; gap:2px;
+  color:#e0e0e0; overflow-x:auto; min-height:2.2rem;
+}
+.ptok{
+  font-family:'Courier New',monospace; font-size:1.5rem; color:#ddd; line-height:1;
+  cursor:pointer; border-radius:3px; padding:0 2px; transition:background .08s;
+  white-space:pre;
+}
+.ptok:hover{ background:rgba(255,255,255,.07); }
+
+.pfrac{
+  display:inline-flex; flex-direction:column; align-items:center;
+  cursor:pointer; border-radius:5px; padding:2px 5px; gap:0;
+  transition:background .1s; vertical-align:middle;
+}
+.pfrac:hover{ background:rgba(255,255,255,.05); }
+.pfrac-part{
+  font-family:'Courier New',monospace; font-size:1.1rem; color:#ddd;
+  line-height:1.3; padding:1px 5px; border-radius:3px;
+  min-width:18px; text-align:center; transition:background .12s,color .12s;
+}
+.pfrac-line{ width:100%; min-width:26px; height:1.5px; background:#555; margin:1px 0; }
+.pfrac-part.slot-active{ color:#f0c040; background:rgba(240,192,64,.12); }
+.pfrac-part.slot-empty{ color:#444; }
+
+.psqrt{ display:inline-flex; align-items:center; cursor:pointer; border-radius:3px; padding:1px 3px; }
+.psqrt:hover{ background:rgba(255,255,255,.05); }
+.psqrt-tick{ color:#6dc; font-family:monospace; font-size:1.5rem; margin-right:1px; line-height:1; }
+.psqrt-body{ font-family:'Courier New',monospace; font-size:1.5rem; color:#ddd; border-top:1.5px solid #666; padding:1px 4px 0; min-width:12px; text-align:center; }
+
+/* Blinking cursor */
+@keyframes kb-blink{ 0%,100%{opacity:1} 50%{opacity:0} }
+.preview-cursor{
+  display:inline-block; width:1.5px; height:1.1em;
+  background:#f0c040; vertical-align:text-bottom; margin:0 1px;
+  animation:kb-blink .85s step-end infinite;
+}
+
+/* Key grid — 6 cols, compact */
+.calc-grid{
+  display:grid; grid-template-columns:repeat(6,1fr); gap:3px;
+  padding:6px 8px 8px; background:#111; box-sizing:border-box; width:100%;
+}
+.ck{
+  background:#1e1e1e; color:#e0e0e0; border:1px solid #2a2a2a;
+  border-bottom:2px solid #000; border-radius:5px;
+  padding:0; height:46px; width:100%;
+  font-family:'Courier New',monospace; font-size:1.1rem; font-weight:600;
+  cursor:pointer; transition:background .08s,transform .07s;
+  display:flex; align-items:center; justify-content:center; line-height:1;
+  -webkit-tap-highlight-color:transparent; user-select:none;
+  box-sizing:border-box;
+}
+.ck:hover{ background:#272727; }
+.ck:active{ background:#2e2e2e; transform:translateY(1px); border-bottom-width:1px; }
+
+.ck-digit{ background:#2a2a2a; color:#fff; border-color:#333; border-bottom-color:#111; }
+.ck-digit:hover{ background:#323232; }
+.ck-op{ color:#f0c040; background:#181400; border-color:#2a2200; border-bottom-color:#000; font-size:1.2rem; }
+.ck-op:hover{ background:#201c00; }
+.ck-var{ color:#7ab8f5; background:#00101a; border-color:#001a28; border-bottom-color:#000; font-size:1.2rem; font-style:italic; }
+.ck-var:hover{ background:#00172a; }
+.ck-fn{ color:#6dc; background:#001614; border-color:#002220; border-bottom-color:#000; font-size:1.4rem; font-weight:700; }
+.ck-fn:hover{ background:#001e1a; }
+.ck-frac{ color:#ddd; background:#1a1a1a; border-color:#2e2e2e; border-bottom-color:#000; }
+.ck-frac:hover{ background:#222; }
+.frac-key-preview{ display:inline-flex; flex-direction:column; align-items:center; line-height:1; gap:0; }
+.frac-key-num,.frac-key-den{ font-family:'Courier New',monospace; font-size:.75rem; color:#aaa; line-height:1.2; }
+.frac-key-line{ width:16px; height:1px; background:#888; margin:1px 0; }
+.ck-eq{ color:#ddd; background:#1a1a1a; font-size:1.4rem; }
+.ck-del{ color:#e06060; background:#180a0a; border-color:#280e0e; border-bottom-color:#000; font-size:1rem; }
+.ck-del:hover{ background:#200c0c; }
+.ck-clr{ color:#e06060; background:#180a0a; border-color:#280e0e; border-bottom-color:#000; font-size:.82rem; font-weight:700; letter-spacing:.04em; }
+.ck-clr:hover{ background:#200c0c; }
+.ck-arrow{ color:#999; background:#161616; border-color:#242424; border-bottom-color:#000; font-size:.95rem; }
+.ck-arrow:hover{ color:#ddd; background:#1e1e1e; }
+.ck-load{ background:#c89800; color:#000; border-color:#a07800; border-bottom-color:#000; font-size:.9rem; font-weight:700; letter-spacing:.06em; }
+.ck-load:hover{ background:#d8a800; }
+#kbToggle.active{ background:rgba(232,200,64,.18); color:var(--gold); border-color:rgba(232,200,64,.35); }
+
+</style>
+</head>
+<body>
+<div class="wood-frame">
+  <div class="wood-inner">
+    <a class="btn ghost" href="../index.html" title="Back to hub" style="text-decoration:none;display:inline-flex;align-items:center;">🏠 Hub</a>
+    <div class="brand">✏ Algebra<em>Touch</em></div>
+    <div class="input-row">
+      <input class="eq-in" id="eqInput" value="3x^2 + 5 = 32" spellcheck="false">
+      <button class="btn" onclick="engine.load()">Load</button>
+      <button class="btn ghost" onclick="calcClear()">Clear</button>
+      <button class="btn ghost" onclick="engine.undo()">Undo</button>
+    </div>
+    <button class="btn ghost kb-toggle-btn" id="kbToggle" onclick="toggleKeyboard()" title="Toggle calculator">⌨</button>
+  </div>
+</div>
+<div id="calcKeyboard" class="calc-keyboard">
+  <div class="calc-preview">
+    <span class="calc-preview-label">Preview</span>
+    <span class="calc-preview-math" id="calcPreviewMath"></span>
+  </div>
+  <div class="calc-grid">
+    <button class="ck ck-digit" data-ins="7">7</button>
+    <button class="ck ck-digit" data-ins="8">8</button>
+    <button class="ck ck-digit" data-ins="9">9</button>
+    <button class="ck ck-op" data-ins="+">+</button>
+    <button class="ck ck-op" data-ins="(">(</button>
+    <button class="ck ck-op" data-ins=")">)</button>
+
+    <button class="ck ck-digit" data-ins="4">4</button>
+    <button class="ck ck-digit" data-ins="5">5</button>
+    <button class="ck ck-digit" data-ins="6">6</button>
+    <button class="ck ck-op" data-ins="-">−</button>
+    <button class="ck ck-op" data-ins="^">x<sup style="font-size:.6em;font-style:normal">n</sup></button>
+    <button class="ck ck-fn" onclick="calcInsertSqrt()">√</button>
+
+    <button class="ck ck-digit" data-ins="1">1</button>
+    <button class="ck ck-digit" data-ins="2">2</button>
+    <button class="ck ck-digit" data-ins="3">3</button>
+    <button class="ck ck-op" data-ins="*">×</button>
+    <button class="ck ck-op" data-ins="/">÷</button>
+    <button class="ck ck-frac" onclick="calcInsertFrac()">
+      <span class="frac-key-preview">
+        <span class="frac-key-num">a</span>
+        <span class="frac-key-line"></span>
+        <span class="frac-key-den">b</span>
+      </span>
+    </button>
+
+    <button class="ck ck-digit" data-ins="0">0</button>
+    <button class="ck ck-digit" data-ins=".">.</button>
+    <button class="ck ck-var" data-ins="x">x</button>
+    <button class="ck ck-var" data-ins="y">y</button>
+    <button class="ck ck-var" data-ins="z">z</button>
+    <button class="ck ck-del" onclick="calcBackspace()">⌫</button>
+
+    <button class="ck ck-arrow" onclick="calcMoveCursor(-1)">◀</button>
+    <button class="ck ck-arrow" onclick="calcMoveCursor(1)">▶</button>
+    <button class="ck ck-eq" data-ins="=">=</button>
+    <button class="ck ck-clr" onclick="calcClear()">CLR</button>
+    <button class="ck ck-load" style="grid-column:span 2" onclick="engine.load()">LOAD</button>
+  </div>
+</div>
+
+</div>
+
+<div class="blackboard">
+  <div class="step-history" id="stepHistory"></div>
+  <div class="eq-stage">
+    <div id="lhsOuter" class="action-zone action-zone-outer"></div>
+    <div id="LHS" class="side"></div>
+    <div id="lhsInner" class="action-zone"></div>
+    <div class="eq-center">
+      <div class="eq-sign" id="eqSignEl" onclick="engine.flip()" title="Flip sides">=</div>
+    </div>
+    <div id="rhsInner" class="action-zone"></div>
+    <div id="RHS" class="side"></div>
+    <div id="rhsOuter" class="action-zone action-zone-outer"></div>
+  </div>
+  <div id="inlineToast"></div>
+</div>
+<div class="chalk-tray">
+  <div class="tray-tips">
+    <span class="tip"><span class="tip-key">Hover</span> terms — green = drag, red = locked</span>
+    <span class="tip-sep">·</span>
+    <span class="tip"><span class="tip-key">Drag across =</span> to apply inverse</span>
+    <span class="tip-sep">·</span>
+    <span class="tip"><span class="tip-key">Simplify</span> / <span class="tip-key">Expand</span> / <span class="tip-key">Factor</span> appear when available</span>
+  </div>
+  <div class="tray-status">
+    <div class="s-dot" id="sDot"></div>
+    <span class="s-txt" id="sTxt">Load an equation to begin.</span>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════════
+//  NODE CLASSES
+// ══════════════════════════════════════
+class Node{constructor(t){this.type=t;this.id=Math.random().toString(36).slice(2,9);}}
+class Atom    extends Node{constructor(v){super('atom');this.val=v;}}
+class OpNode  extends Node{constructor(t,ch){super(t);this.children=ch;}}
+class DivNode extends Node{constructor(n,d){super('div');this.num=n;this.den=d;}}
+class PowNode extends Node{constructor(b,e){super('pow');this.base=b;this.exp=e;}}
+
+// ══════════════════════════════════════
+//  ENGINE
+// ══════════════════════════════════════
+class Engine{
+  constructor(){this.state={lhs:null,rhs:null};this.history=[];this.steps=[];this._toastTimer=null;}
+
+  // ── LOAD ──
+  load(){
+    const raw=document.getElementById('eqInput').value.trim();
+    const proc=raw.replace(/sqrt\(([^)]+)\)/g,'($1)^(1/2)');
+    const idx=proc.indexOf('=');
+    if(idx<0){this.status('err','No = sign found.');return;}
+    this.state.lhs=this.parseExpr(proc.slice(0,idx));
+    this.state.rhs=this.parseExpr(proc.slice(idx+1));
+    this.history=[];this.steps=[];
+    document.getElementById('stepHistory').innerHTML='';
+    this.state.lhs=this.sStructN(this.state.lhs);
+    this.state.rhs=this.sStructN(this.state.rhs);
+    this.save();this.render();
+    this.status('ok','Hover a term — green = draggable, red = locked.');
+  }
+
+  // ── UNDO ──
+  undo(){
+    if(this.history.length>1){
+      this.history.pop();if(this.steps.length)this.steps.pop();
+      const s=JSON.parse(this.history[this.history.length-1]);
+      this.state.lhs=this.restore(s.lhs);this.state.rhs=this.restore(s.rhs);
+      this.rebuildHistory();this.render();this.status('ok','Undone.');
+    }
+  }
+
+  // ── PARSER ──
+  parseExpr(s){return s?this.pAdd(this.tok(s.trim())):new Atom('0');}
+  tok(s){
+    s=s.replace(/\s+/g,'');
+    const t=[],re=/([+\-*/^()])|([a-zA-Z](?:_[a-zA-Z0-9]+)?)|([0-9]+\.?[0-9]*)/g;
+    let m;while((m=re.exec(s))!==null)if(m[0])t.push(m[0]);return t;
+  }
+  pAdd(tok){
+    let l=this.pMult(tok);
+    while(tok.length&&(tok[0]==='+'||tok[0]==='-')){
+      const op=tok.shift(),r=this.pMult(tok);
+      if(op==='-'){const neg=new OpNode('mult',[new Atom('-1'),r]);l=l.type==='add'?(l.children.push(neg),l):new OpNode('add',[l,neg]);}
+      else{l=l.type==='add'?(l.children.push(r),l):new OpNode('add',[l,r]);}
+    }
+    return l;
+  }
+  pMult(tok){
+    // Handle leading unary minus at mult level: -2x → mult([-1,2,x])
+    let l;
+    if(tok.length&&tok[0]==='-'){
+      tok.shift();
+      const r=this.pPow(tok);
+      l=new OpNode('mult',[new Atom('-1'),r]);
+    }else{
+      l=this.pPow(tok);
+    }
+    while(tok.length){
+      const t=tok[0];
+      if(t==='*'||t==='/'){const op=tok.shift(),r=this.pPow(tok);if(op==='/')l=new DivNode(l,r);else l=l.type==='mult'?(l.children.push(r),l):new OpNode('mult',[l,r]);}
+      else if(t!=='+'&&t!=='-'&&t!==')'){const r=this.pPow(tok);l=l.type==='mult'?(l.children.push(r),l):new OpNode('mult',[l,r]);}
+      else break;
+    }
+    return l;
+  }
+  pPow(tok){let l=this.pAtom(tok);if(tok.length&&tok[0]==='^'){tok.shift();l=new PowNode(l,this.pAtom(tok));}return l;}
+  pAtom(tok){const t=tok.shift();if(t==='('){const n=this.pAdd(tok);tok.shift();return n;}return new Atom(t);}
+
+  // ── RESTORE ──
+  restore(n){
+    if(!n)return null;let m;
+    if(n.type==='atom')m=new Atom(n.val);
+    else if(n.type==='add'||n.type==='mult')m=new OpNode(n.type,n.children.map(c=>this.restore(c)));
+    else if(n.type==='div')m=new DivNode(this.restore(n.num),this.restore(n.den));
+    else if(n.type==='pow')m=new PowNode(this.restore(n.base),this.restore(n.exp));
+    if(m)m.id=n.id;return m;
+  }
+
+  // ── HELPERS ──
+  isNegOne(n){return n instanceof Atom&&n.val==='-1';}
+  isNegTerm(n){return n.type==='mult'&&this.isNegOne(n.children[0]);}
+  // Wrap node as negative (negate): double-neg cancels
+  negate(n){
+    if(this.isNegTerm(n)){
+      // mult([-1, X]) → X (or mult(X children))
+      const rest=n.children.slice(1);
+      return rest.length===1?rest[0]:new OpNode('mult',rest);
+    }
+    if(n instanceof Atom&&!isNaN(n.val)){return new Atom(String(-parseFloat(n.val)));}
+    return new OpNode('mult',[new Atom('-1'),n]);
+  }
+
+  // Return the highest power of any variable in a node (for ordering add terms)
+  termDegree(n){
+    if(!n)return 0;
+    if(n instanceof Atom)return isNaN(n.val)?1:0; // var=1, num=0
+    if(n.type==='pow'){
+      const e=n.exp;
+      if(e instanceof Atom&&!isNaN(e.val))return parseFloat(e.val);
+      return 1;
+    }
+    if(n.type==='mult'){
+      // max degree among children
+      return Math.max(...n.children.map(c=>this.termDegree(c)));
+    }
+    if(n.type==='add')return Math.max(...n.children.map(c=>this.termDegree(c)));
+    if(n.type==='div')return this.termDegree(n.num); // treat by numerator
+    return 0;
+  }
+  sStructN(n){
+    if(!n)return null;
+    if(n.children)n.children=n.children.map(c=>this.sStructN(c));
+    if(n.num){n.num=this.sStructN(n.num);n.den=this.sStructN(n.den);}
+    if(n.base){n.base=this.sStructN(n.base);n.exp=this.sStructN(n.exp);}
+    // Flatten same-type nesting
+    if(n.type==='add'||n.type==='mult'){
+      let f=[];n.children.forEach(c=>{c.type===n.type?f.push(...c.children):f.push(c);});n.children=f;
+    }
+    // Consolidate repeated variable factors in mult: mult([x, x]) → x², mult([x, x²]) → x³
+    if(n.type==='mult'&&n.children.length>=2){
+      const varPowers={};  // v → total power
+      const nonVarChildren=[];
+      for(const c of n.children){
+        if(c instanceof Atom&&isNaN(c.val)){
+          // bare variable like x
+          varPowers[c.val]=(varPowers[c.val]||0)+1;
+        } else if(c.type==='pow'&&c.base instanceof Atom&&isNaN(c.base.val)&&
+                  c.exp instanceof Atom&&!isNaN(c.exp.val)){
+          // x^n
+          varPowers[c.base.val]=(varPowers[c.base.val]||0)+parseFloat(c.exp.val);
+        } else {
+          nonVarChildren.push(c);
+        }
+      }
+      const consolidatedVars=Object.entries(varPowers).map(([v,p])=>{
+        if(p===1)return new Atom(v);
+        return new PowNode(new Atom(v),new Atom(String(p)));
+      });
+      if(consolidatedVars.length>0&&consolidatedVars.length+nonVarChildren.length<n.children.length){
+        // Something was consolidated
+        n.children=[...nonVarChildren,...consolidatedVars];
+        // Re-run structural rules on the new shape
+        return this.sStructN(n);
+      }
+    }
+    // Sort add children: descending degree (x² before x before constants)
+    if(n.type==='add'&&n.children.length>1){
+      n.children.sort((a,b)=>this.termDegree(b)-this.termDegree(a));
+    }
+    if(n.type==='div'&&n.den instanceof Atom&&n.den.val==='1')return n.num;
+    // x^1 → x
+    if(n.type==='pow'&&n.exp instanceof Atom&&n.exp.val==='1')return n.base;
+    // Single child collapse
+    if((n.type==='add'||n.type==='mult')&&n.children.length===1)return n.children[0];
+    // Cancel double negatives: mult([-1, mult([-1, ...rest])]) → mult([...rest])
+    if(n.type==='mult'&&n.children.length>=2&&this.isNegOne(n.children[0])){
+      const second=n.children[1];
+      // mult([-1, -1, ...]) → mult([...rest]) or Atom('1')
+      if(this.isNegOne(second)){
+        const rest=n.children.slice(2);
+        if(rest.length===0)return new Atom('1');
+        if(rest.length===1)return rest[0];
+        return this.sStructN(new OpNode('mult',rest));
+      }
+      // mult([-1, mult([-1, X, ...])]) → mult([X, ...]) (flattened)
+      if(this.isNegTerm(second)){
+        const inner=second.children.slice(1);
+        const rest=n.children.slice(2);
+        const all=[...inner,...rest];
+        if(all.length===1)return all[0];
+        return this.sStructN(new OpNode('mult',all));
+      }
+      // mult([-1, mult([-N, X, ...])]) where -N is a negative numeric coeff → flip coeff sign
+      if(second.type==='mult'&&second.children[0] instanceof Atom&&!isNaN(second.children[0].val)&&parseFloat(second.children[0].val)<0){
+        const posCoeff=new Atom(String(-parseFloat(second.children[0].val)));
+        const all=[posCoeff,...second.children.slice(1),...n.children.slice(2)];
+        if(all.length===1)return all[0];
+        return this.sStructN(new OpNode('mult',all));
+      }
+      // mult([-1, negativeAtom]) → positive atom
+      if(n.children.length===2&&second instanceof Atom&&!isNaN(second.val)){
+        return new Atom(String(-parseFloat(second.val)));
+      }
+    }
+    // Merge -1 with adjacent numeric coefficient: mult([-1, 2, x]) → mult([-2, x])
+    // This keeps the coefficient as one unit (-2) rather than a separate sign
+    if(n.type==='mult'&&n.children.length>=2&&this.isNegOne(n.children[0])&&
+       n.children[1] instanceof Atom&&!isNaN(n.children[1].val)){
+      const coeff=-parseFloat(n.children[1].val);
+      const rest=n.children.slice(2);
+      if(rest.length===0)return new Atom(String(coeff));
+      const merged=[new Atom(String(coeff)),...rest];
+      return this.sStructN(new OpNode('mult',merged));
+    }
+    if(n.type==='mult'){
+      // After merge, negative coefficients are like Atom('-2') — numeric but negative
+      // They should always stay first. Sort the rest: numbers before vars before compounds.
+      const isNegCoeff=c=>c instanceof Atom&&!isNaN(c.val)&&parseFloat(c.val)<0;
+      const isPosNum=c=>c instanceof Atom&&!isNaN(c.val)&&parseFloat(c.val)>0&&!this.isNegOne(c);
+      const rank=c=>isPosNum(c)?0:(c instanceof Atom&&isNaN(c.val)?1:2);
+      if(isNegCoeff(n.children[0])){
+        // Keep negative coeff first, sort the rest
+        const rest=n.children.slice(1).sort((a,b)=>rank(a)-rank(b));
+        n.children=[n.children[0],...rest];
+      }else if(!this.isNegOne(n.children[0])){
+        n.children.sort((a,b)=>rank(a)-rank(b));
+      }else{
+        // Leading -1 (edge case that shouldn't happen after merge but be safe)
+        const rest=n.children.slice(1).sort((a,b)=>rank(a)-rank(b));
+        n.children=[n.children[0],...rest];
+      }
+    }
+    return n;
+  }
+
+  // ── FULL NUMERIC SIMPLIFY ──
+  sFullN(n){
+    if(!n)return null;
+    if(n.children)n.children=n.children.map(c=>this.sFullN(c));
+    if(n.num){n.num=this.sFullN(n.num);n.den=this.sFullN(n.den);}
+    if(n.base){n.base=this.sFullN(n.base);n.exp=this.sFullN(n.exp);}
+    if(n.type==='add'||n.type==='mult'){
+      let f=[];n.children.forEach(c=>{c.type===n.type?f.push(...c.children):f.push(c);});n.children=f;
+    }
+    if(n.type==='add'){
+      let s=0,r=[];
+      n.children.forEach(c=>{c instanceof Atom&&!isNaN(c.val)?s+=parseFloat(c.val):r.push(c);});
+      if(s!==0)r.push(new Atom(this.fmt(s)));
+      if(!r.length)return new Atom('0');if(r.length===1)return r[0];n.children=r;
+    }
+    if(n.type==='mult'){
+      let p=1,r=[];
+      n.children.forEach(c=>{c instanceof Atom&&!isNaN(c.val)?p*=parseFloat(c.val):r.push(c);});
+      if(p===0)return new Atom('0');
+      if(p!==1)r.unshift(new Atom(this.fmt(p)));
+      if(!r.length)return new Atom('1');if(r.length===1)return r[0];n.children=r;
+    }
+    if(n.type==='div'){
+      if(n.den instanceof Atom&&n.den.val==='-1')return this.sFullN(new OpNode('mult',[new Atom('-1'),n.num]));
+      if(n.den instanceof Atom&&n.den.val==='1')return n.num;
+      // Both sides numeric → divide
+      if(n.num instanceof Atom&&!isNaN(n.num.val)&&n.den instanceof Atom&&!isNaN(n.den.val)){
+        const res=parseFloat(n.num.val)/parseFloat(n.den.val);
+        if(Number.isInteger(res))return new Atom(res.toString());
+      }
+      // Numerator is a mult and denominator is a numeric factor — absorb into coefficient
+      if(n.den instanceof Atom&&!isNaN(n.den.val)&&n.num.type==='mult'){
+        const nums=n.num.children.filter(c=>c instanceof Atom&&!isNaN(c.val));
+        const rest=n.num.children.filter(c=>!(c instanceof Atom&&!isNaN(c.val)));
+        if(nums.length===1){
+          const res=parseFloat(nums[0].val)/parseFloat(n.den.val);
+          if(Number.isInteger(res)){
+            const newCoeff=new Atom(res.toString());
+            const merged=res===1?rest:[newCoeff,...rest];
+            return this.sFullN(merged.length===1?merged[0]:new OpNode('mult',merged));
+          }
+        }
+      }
+    }
+    if(n.type==='pow'){
+      if(n.exp instanceof Atom&&n.exp.val==='1')return n.base;
+      if(n.exp instanceof Atom&&n.exp.val==='0')return new Atom('1');
+      if(n.base instanceof Atom&&!isNaN(n.base.val)){
+        const base=parseFloat(n.base.val);
+        if(n.exp instanceof Atom&&!isNaN(n.exp.val)){
+          const res=Math.pow(base,parseFloat(n.exp.val));
+          if(Number.isInteger(res)&&Math.abs(res)<1e9)return new Atom(res.toString());
+        }
+        if(n.exp.type==='div'&&n.exp.num instanceof Atom&&!isNaN(n.exp.num.val)&&n.exp.den instanceof Atom&&!isNaN(n.exp.den.val)){
+          const res=Math.pow(base,parseFloat(n.exp.num.val)/parseFloat(n.exp.den.val));
+          if(Math.abs(res-Math.round(res))<1e-9&&Math.abs(res)<1e9)return new Atom(Math.round(res).toString());
+        }
+      }
+    }
+    if((n.type==='add'||n.type==='mult')&&n.children&&n.children.length===1)return n.children[0];
+    return n;
+  }
+  fmt(n){return Number.isInteger(n)?n.toString():parseFloat(n.toFixed(4)).toString();}
+
+  // ── DETECTION: simplifiable? expandable? reducible? ──
+  // GCD helper
+  gcd(a,b){a=Math.abs(Math.round(a));b=Math.abs(Math.round(b));while(b){[a,b]=[b,a%b];}return a;}
+
+  // Is this a fractional exponent (like 1/2 inside sqrt)? If so, skip simplify check on it.
+  isFracExp(n,parentNode){
+    return parentNode&&parentNode.type==='pow'&&parentNode.exp===n&&
+           n.type==='div'&&n.num instanceof Atom&&n.den instanceof Atom;
+  }
+
+  hasSimplifiable(n,parentNode=null){
+    if(!n)return false;
+    if(this.isFracExp(n,parentNode))return false;
+    if(n.type==='mult'){const nums=n.children.filter(c=>c instanceof Atom&&!isNaN(c.val));if(nums.length>=2)return true;}
+    if(n.type==='add'){const nums=n.children.filter(c=>c instanceof Atom&&!isNaN(c.val));if(nums.length>=2)return true;}
+    if(n.type==='div'&&n.num instanceof Atom&&!isNaN(n.num.val)&&n.den instanceof Atom&&!isNaN(n.den.val)){
+      const num=parseFloat(n.num.val),den=parseFloat(n.den.val);
+      if(den!==0&&Number.isInteger(num/den))return true;
+      return false;
+    }
+    if(n.type==='pow'&&n.base instanceof Atom&&!isNaN(n.base.val)){
+      const base=parseFloat(n.base.val);
+      // Integer exponent → standard pow check
+      if(n.exp instanceof Atom&&!isNaN(n.exp.val)){
+        const res=Math.pow(base,parseFloat(n.exp.val));
+        if(Number.isInteger(res)&&Math.abs(res)<1e9)return true;
+        return false;
+      }
+      // Fractional exponent 1/k → surd: check if base is a perfect k-th power
+      if(n.exp.type==='div'&&
+         n.exp.num instanceof Atom&&n.exp.num.val==='1'&&
+         n.exp.den instanceof Atom&&!isNaN(n.exp.den.val)){
+        const k=parseFloat(n.exp.den.val);
+        if(k>=2&&Number.isInteger(k)){
+          const res=Math.pow(base,1/k);
+          if(Math.abs(res-Math.round(res))<1e-9&&Math.abs(res)<1e9)return true;
+        }
+      }
+    }
+    if(n.children)for(const c of n.children)if(this.hasSimplifiable(c,n))return true;
+    if(n.num&&this.hasSimplifiable(n.num,n))return true;
+    if(n.den&&this.hasSimplifiable(n.den,n))return true;
+    if(n.base&&this.hasSimplifiable(n.base,n))return true;
+    if(n.exp&&!this.isFracExp(n.exp,n)&&this.hasSimplifiable(n.exp,n))return true;
+    return false;
+  }
+
+  // Fraction reducible by GCD > 1 (e.g. -6/4 → -3/2)
+  // ── FACTORING SYSTEM ──────────────────────────────────────────
+  termCoeff(n){
+    if(n instanceof Atom&&!isNaN(n.val))return Math.abs(parseFloat(n.val));
+    if(n.type==='mult'){const c=n.children[0];if(c instanceof Atom&&!isNaN(c.val))return Math.abs(parseFloat(c.val));}
+    return 1;
+  }
+  termBody(n){
+    if(n instanceof Atom&&!isNaN(n.val))return null;
+    if(n.type==='mult'){const c=n.children[0];if(c instanceof Atom&&!isNaN(c.val)){const r=n.children.slice(1);if(!r.length)return null;if(r.length===1)return r[0];return new OpNode('mult',r);}}
+    return n;
+  }
+  termVars(n){
+    const vars={};
+    const col=(node)=>{
+      if(!node)return;
+      if(node instanceof Atom&&isNaN(node.val))vars[node.val]=(vars[node.val]||0)+1;
+      if(node.type==='pow'&&node.base instanceof Atom&&isNaN(node.base.val)){
+        const v=node.base.val,e=node.exp instanceof Atom&&!isNaN(node.exp.val)?parseFloat(node.exp.val):1;
+        vars[v]=(vars[v]||0)+e;
+      }
+      if(node.type==='mult')node.children.forEach(c=>{if(!(c instanceof Atom&&!isNaN(c.val)))col(c);});
+    };
+    col(n);return vars;
+  }
+  findAddFactor(addNode){
+    if(!addNode||addNode.type!=='add')return null;
+    const ch=addNode.children;if(ch.length<2)return null;
+    const coeffs=ch.map(c=>this.termCoeff(c));
+    let numGCD=coeffs[0];for(let i=1;i<coeffs.length;i++)numGCD=this.gcd(numGCD,coeffs[i]);
+    if(!numGCD||numGCD<1)numGCD=1;
+    const allVars=ch.map(c=>this.termVars(c));
+    const commonVarNames=Object.keys(allVars[0]).filter(v=>allVars.every(tv=>tv[v]>0));
+    const varFactors=commonVarNames.map(v=>({v,power:Math.min(...allVars.map(tv=>tv[v]||0))}));
+    if(numGCD<=1&&!varFactors.length)return null;
+    return{numFactor:numGCD,varFactors,hasNum:numGCD>1,hasVar:varFactors.length>0};
+  }
+  findDivFactor(divNode){
+    if(!divNode||divNode.type!=='div')return null;
+    const{num,den}=divNode;
+    const nodeFactor=(n)=>{
+      if(n instanceof Atom&&!isNaN(n.val))return{numFactor:Math.abs(parseFloat(n.val)),varFactors:[]};
+      if(n.type==='add'){const f=this.findAddFactor(n);return f||{numFactor:1,varFactors:[]};}
+      if(n.type==='mult'){const c=n.children[0];const nf=(c instanceof Atom&&!isNaN(c.val))?Math.abs(parseFloat(c.val)):1;const vf=this.termVars(n);return{numFactor:nf,varFactors:Object.entries(vf).map(([v,p])=>({v,power:p}))};}
+      const vf=this.termVars(n);return{numFactor:1,varFactors:Object.entries(vf).map(([v,p])=>({v,power:p}))};
+    };
+    const nf=nodeFactor(num),df=nodeFactor(den);
+    const numGCD=this.gcd(nf.numFactor||1,df.numFactor||1);
+    const nVars=Object.fromEntries((nf.varFactors||[]).map(({v,power})=>[v,power]));
+    const dVars=Object.fromEntries((df.varFactors||[]).map(({v,power})=>[v,power]));
+    const commonVars=Object.keys(nVars).filter(v=>dVars[v]>0).map(v=>({v,power:Math.min(nVars[v],dVars[v])}));
+    if(numGCD<=1&&!commonVars.length)return null;
+    return{numFactor:numGCD>1?numGCD:1,varFactors:commonVars,hasNum:numGCD>1,hasVar:commonVars.length>0};
+  }
+  hasFactorable(n){
+    if(!n)return false;
+    if(n.type==='div'){
+      // Don't show Factor if we can already cancel (Simplify handles that)
+      const alreadyCancellable=this.divAlreadyCancellable(n);
+      if(!alreadyCancellable&&this.findDivFactor(n))return true;
+    }
+    if(n.children)for(const c of n.children)if(this.hasFactorable(c))return true;
+    if(n.num&&this.hasFactorable(n.num))return true;
+    if(n.den&&this.hasFactorable(n.den))return true;
+    if(n.base&&this.hasFactorable(n.base))return true;
+    return false;
+  }
+
+  // Does this tree contain a div where common factors can already be cancelled?
+  hasCancellable(n){
+    if(!n)return false;
+    if(n.type==='div'&&this.divAlreadyCancellable(n))return true;
+    if(n.children)for(const c of n.children)if(this.hasCancellable(c))return true;
+    if(n.num&&this.hasCancellable(n.num))return true;
+    if(n.den&&this.hasCancellable(n.den))return true;
+    if(n.base&&this.hasCancellable(n.base))return true;
+    return false;
+  }
+  divAlreadyCancellable(divNode){
+    if(!divNode||divNode.type!=='div')return false;
+    const{num,den}=divNode;
+    const nP=num.type==='mult'?num.children:[num];
+    const dP=den.type==='mult'?den.children:[den];
+    const key=node=>{
+      if(node instanceof Atom)return node.val;
+      if(node.type==='pow'&&node.base instanceof Atom&&node.exp instanceof Atom)return node.base.val+'^'+node.exp.val;
+      return null;
+    };
+    // Any matching factor between num and den children?
+    for(const nc of nP){
+      const k=key(nc);
+      if(k&&dP.some(dc=>key(dc)===k))return true;
+    }
+    return false;
+  }
+  pullFactor(n,{numFactor,varFactors}){
+    let coeff=1,body=null;
+    if(n instanceof Atom&&!isNaN(n.val)){coeff=parseFloat(n.val)/numFactor;}
+    else if(n.type==='mult'){const c=n.children[0];if(c instanceof Atom&&!isNaN(c.val)){coeff=parseFloat(c.val)/numFactor;const r=n.children.slice(1);body=r.length===1?r[0]:(r.length>1?new OpNode('mult',r):null);}else{coeff=1/numFactor;body=n;}}
+    else{coeff=1/numFactor;body=n;}
+    const redVar=(bodyNode,v,power)=>{
+      if(!bodyNode)return bodyNode;
+      if(bodyNode instanceof Atom&&bodyNode.val===v){const rem=1-power;if(rem<=0)return new Atom('1');return new PowNode(new Atom(v),new Atom(String(rem)));}
+      if(bodyNode.type==='pow'&&bodyNode.base instanceof Atom&&bodyNode.base.val===v){const cur=bodyNode.exp instanceof Atom&&!isNaN(bodyNode.exp.val)?parseFloat(bodyNode.exp.val):1;const rem=cur-power;if(rem<=0)return new Atom('1');if(rem===1)return new Atom(v);return new PowNode(new Atom(v),new Atom(String(rem)));}
+      if(bodyNode.type==='mult'){const nc=[];let done=false;for(const ch of bodyNode.children){if(!done){const red=redVar(ch,v,power);if(red!==ch){nc.push(red);done=true;continue;}}nc.push(ch);}if(!done)return bodyNode;const f=nc.filter(c=>!(c instanceof Atom&&c.val==='1'));if(!f.length)return new Atom('1');if(f.length===1)return f[0];return new OpNode('mult',f);}
+      return bodyNode;
+    };
+    let result=body;
+    for(const{v,power} of varFactors)result=redVar(result,v,power);
+    const coeffAtom=Number.isInteger(coeff)?new Atom(String(coeff)):new Atom(this.fmt(coeff));
+    const parts=[];
+    if(coeff!==1||!result)parts.push(coeffAtom);
+    if(result&&!(result instanceof Atom&&result.val==='1'))parts.push(result);
+    if(!parts.length)return new Atom('1');
+    if(parts.length===1)return parts[0];
+    return new OpNode('mult',parts);
+  }
+  buildFactor({numFactor,varFactors,hasNum,hasVar}){
+    const parts=[];
+    if(hasNum&&numFactor!==1)parts.push(new Atom(String(numFactor)));
+    for(const{v,power} of varFactors){if(power===1)parts.push(new Atom(v));else parts.push(new PowNode(new Atom(v),new Atom(String(power))));}
+    if(!parts.length)return new Atom('1');if(parts.length===1)return parts[0];return new OpNode('mult',parts);
+  }
+  factorDiv(divNode){
+    const info=this.findDivFactor(divNode);if(!info)return divNode;
+    const{numFactor,varFactors,hasNum,hasVar}=info;
+    const factor=this.buildFactor({numFactor,varFactors,hasNum,hasVar});
+    const factorSide=(node)=>{
+      if(node.type==='add'){const nc=node.children.map(c=>this.sStructN(this.pullFactor(c,{numFactor,varFactors})));return this.sStructN(new OpNode('add',nc));}
+      return this.sStructN(this.pullFactor(node,{numFactor,varFactors}));
+    };
+    const fCopy=()=>this.restore(factor);
+    const newNum=new OpNode('mult',[fCopy(),factorSide(divNode.num)]);
+    const newDen=new OpNode('mult',[fCopy(),factorSide(divNode.den)]);
+    return new DivNode(this.sStructN(newNum),this.sStructN(newDen));
+  }
+  applyFactoring(n){
+    if(!n)return null;
+    if(n.type==='div'){const info=this.findDivFactor(n);if(info)return this.factorDiv(n);}
+    if(n.children)n.children=n.children.map(c=>this.applyFactoring(c));
+    if(n.num){n.num=this.applyFactoring(n.num);n.den=this.applyFactoring(n.den);}
+    if(n.base){n.base=this.applyFactoring(n.base);n.exp=this.applyFactoring(n.exp);}
+    return n;
+  }
+  cancelCommonFactors(n){
+    if(!n)return null;
+    if(n.children)n.children=n.children.map(c=>this.cancelCommonFactors(c));
+    if(n.num){n.num=this.cancelCommonFactors(n.num);n.den=this.cancelCommonFactors(n.den);}
+    if(n.base){n.base=this.cancelCommonFactors(n.base);n.exp=this.cancelCommonFactors(n.exp);}
+    if(n.type==='div'){
+      const nP=n.num.type==='mult'?[...n.num.children]:[n.num];
+      const dP=n.den.type==='mult'?[...n.den.children]:[n.den];
+      const key=node=>{if(node instanceof Atom)return node.val;if(node.type==='pow'&&node.base instanceof Atom&&node.exp instanceof Atom)return node.base.val+'^'+node.exp.val;return null;};
+      let nN=[...nP],nD=[...dP],cancelled=false;
+      for(let i=0;i<nN.length;i++){const k=key(nN[i]);if(!k)continue;const j=nD.findIndex(d=>key(d)===k);if(j>=0){nN.splice(i,1);nD.splice(j,1);cancelled=true;i--;}}
+      if(cancelled){
+        const build=parts=>{const f=parts.filter(p=>!(p instanceof Atom&&p.val==='1'));if(!f.length)return new Atom('1');if(f.length===1)return f[0];return new OpNode('mult',f);};
+        const nNode=build(nN),dNode=build(nD);
+        if(dNode instanceof Atom&&dNode.val==='1')return this.sStructN(nNode);
+        return this.sStructN(new DivNode(nNode,dNode));
+      }
+    }
+    return n;
+  }
+  doFactor(){
+    const lEl=document.getElementById('LHS'),rEl=document.getElementById('RHS');
+    const animOut=el=>{el.classList.remove('chalkin','dissolving');void el.offsetWidth;el.classList.add('dissolving');};
+    animOut(lEl);animOut(rEl);
+    setTimeout(()=>{
+      this.save();
+      this.state.lhs=this.applyFactoring(this.restore(this.state.lhs));
+      this.state.rhs=this.applyFactoring(this.restore(this.state.rhs));
+      this.state.lhs=this.sStructN(this.state.lhs);
+      this.state.rhs=this.sStructN(this.state.rhs);
+      this.recordStep();
+      lEl.classList.remove('dissolving');rEl.classList.remove('dissolving');
+      this.render(true);this.status('ok','Common factor pulled out — now Simplify to cancel it!');
+    },380);
+  }
+  // Check if a mult node has an add child (distributable)
+  hasExpandable(n){
+    if(!n)return false;
+    if(n.type==='mult'&&n.children.some(c=>c.type==='add'))return true;
+    if(n.children)for(const c of n.children)if(this.hasExpandable(c))return true;
+    if(n.num&&this.hasExpandable(n.num))return true;
+    if(n.den&&this.hasExpandable(n.den))return true;
+    if(n.base&&this.hasExpandable(n.base))return true;
+    if(n.exp&&this.hasExpandable(n.exp))return true;
+    return false;
+  }
+  // Distribute: mult([a, add([b,c,...])]) → add([mult([a,b]), mult([a,c]),...])
+  expand(n){
+    if(!n)return null;
+    if(n.children)n.children=n.children.map(c=>this.expand(c));
+    if(n.num){n.num=this.expand(n.num);n.den=this.expand(n.den);}
+    if(n.base){n.base=this.expand(n.base);n.exp=this.expand(n.exp);}
+    if(n.type==='mult'){
+      const addIdx=n.children.findIndex(c=>c.type==='add');
+      if(addIdx>=0){
+        const addNode=n.children[addIdx];
+        const others=n.children.filter((_,i)=>i!==addIdx);
+        const terms=addNode.children.map(t=>{
+          const m=new OpNode('mult',[...others.map(x=>this.restore(x)),t]);
+          return this.sStructN(m);
+        });
+        return new OpNode('add',terms);
+      }
+    }
+    return n;
+  }
+
+  // ── MOVE LEGALITY ──
+  checkMove(node,path,root){
+    if(node===root)return false;
+    const parent=path.length>1?path[path.length-2]:null;
+    if(!parent)return false;
+    if(root.type==='add')return parent===root;
+    if(root.type==='mult'){
+      // Direct child of mult root → movable
+      if(parent===root)return true;
+      // Denominator of a div that is itself a child of mult root
+      const gp=path.length>2?path[path.length-3]:null;
+      if(parent.type==='div'&&node===parent.den&&gp===root)return true;
+      return false;
+    }
+    if(root.type==='div')return node===root.den;
+    if(root.type==='pow'){
+      if(node===root.exp)return true;
+      const gp=path.length>2?path[path.length-3]:null;
+      if(parent.type==='div'&&node===parent.den&&gp===root&&parent===root.exp)return true;
+      return false;
+    }
+    // Root is a plain atom or anything else — nothing inside is individually movable
+    return false;
+  }
+
+  getMovable(path,root){
+    for(let i=path.length-1;i>=0;i--)
+      if(this.checkMove(path[i],path.slice(0,i+1),root))return path[i];
+    return null;
+  }
+
+  // ── LOCK HINT ──
+  lockHint(node,path,root){
+    const parent=path.length>1?path[path.length-2]:null;
+    if(node===root)return 'Drag individual terms, not the whole expression';
+    if(!parent)return 'This term is not independently movable';
+    // Inside an add — find the direct add child (the whole term) and name it
+    if(root.type==='add'){
+      // Find the direct child of add that contains this node
+      const directChild=path.find((n,i)=>i>0&&path[i-1]===root);
+      const termLabel=directChild?this.nodeToText(directChild):'this term';
+      if(parent!==root)
+        return`(${termLabel}) must be moved as a whole — remove other terms first, then split it apart`;
+    }
+    if(root.type==='mult'){
+      if(parent&&parent.type==='div')return'Move the denominator first to free the numerator';
+      if(parent&&parent.type==='pow')return'Remove the exponent first, then tackle this';
+      const termLabel=this.nodeToText(root);
+      return`(${termLabel}) moves as one — isolate it first, then you can split its parts`;
+    }
+    if(root.type==='div'&&node===root.num)return'Drag the denominator across first to free the numerator';
+    if(root.type==='pow'&&node===root.base)return'Drag the exponent across first to unlock the base';
+    return'Move an outer term first to unlock this one';
+  }
+
+  // ── GHOST LABELS ──
+  ghostLabels(node,side){
+    const root=this.state[side==='LHS'?'lhs':'rhs'];
+    const path=this.findPath(root,node.id);
+    if(!path)return{src:this.nodeToText(node),inv:this.nodeToText(node)};
+    const parent=path.length>1?path[path.length-2]:null;
+    const gp=path.length>2?path[path.length-3]:null;
+    const t=this.nodeToText(node);
+
+    const isExpDen=gp&&gp.type==='pow'&&parent===gp.exp&&parent.type==='div'&&node===parent.den;
+    const isStdDen=parent&&parent.type==='div'&&node===parent.den&&!isExpDen;
+
+    if(isExpDen)return{src:`^(1/${t})`,inv:`√`};
+    if(isStdDen)return{src:`÷ ${t}`,inv:`× ${t}`};
+
+    if(parent&&parent.type==='add'){
+      // node is a child of add
+      const isNeg=this.isNegTerm(node);
+      const isNegAtom=node instanceof Atom&&parseFloat(node.val)<0;
+      if(isNeg){
+        const inner=this.nodeToText(new OpNode('mult',node.children.slice(1)));
+        return{src:`− ${inner}`,inv:`+ ${inner}`};
+      }
+      if(isNegAtom){
+        return{src:`${t}`,inv:`+ ${String(-parseFloat(node.val))}`};
+      }
+      return{src:`+ ${t}`,inv:`− ${t}`};
+    }
+
+    if(parent&&parent.type==='mult'){
+      // This factor is being moved — it will divide the other side
+      if(this.isNegOne(node)){
+        // Edge case: literal -1 coefficient → flips sign of other side
+        return{src:`× (−1)`,inv:`flip sign`};
+      }
+      // Negative numeric coefficient like -2 → shows as × −2, inv ÷ −2
+      return{src:`× ${t}`,inv:`÷ ${t}`};
+    }
+
+    if(parent&&parent.type==='pow'&&node===parent.exp)return{src:`^ ${t}`,inv:`√`};
+
+    // Root IS a mult (e.g. -x = 1), and the -1 child is being dragged
+    if(root.type==='mult'&&this.isNegOne(node))return{src:`× (−1)`,inv:`÷ (−1)`};
+
+    return{src:t,inv:t};
+  }
+
+  // ── APPLY MOVE ──
+  move(node,targetName){
+    this.save();
+    const srcKey=targetName==='LHS'?'rhs':'lhs';
+    const dstKey=targetName==='LHS'?'lhs':'rhs';
+    const root=this.state[srcKey];
+    const path=this.findPath(root,node.id);
+    if(!path){this.history.pop();return;}
+    const parent=path.length>1?path[path.length-2]:null;
+    const gp=path.length>2?path[path.length-3]:null;
+
+    const isExpDen=gp&&gp.type==='pow'&&parent===gp.exp&&parent.type==='div'&&node===parent.den;
+    const isStdDen=parent&&parent.type==='div'&&node===parent.den&&!isExpDen;
+
+    // ── Extract from source ──
+    if(isExpDen||isStdDen){
+      if(gp){
+        if(gp.type==='mult'||gp.type==='add'){const i=gp.children.indexOf(parent);gp.children[i]=parent.num;}
+        else if(gp.type==='pow')gp.exp=parent.num;
+      }else this.state[srcKey]=parent.num;
+    }else{
+      let rem;
+      if(parent){
+        if(parent.type==='add'||parent.type==='mult'){
+          parent.children=parent.children.filter(c=>c.id!==node.id);
+          rem=parent.children.length===1?parent.children[0]:parent;
+        }else if(parent.type==='div')rem=parent.num;
+        else if(parent.type==='pow')rem=parent.base;
+      }else rem=new Atom('1');
+      this.state[srcKey]=rem||new Atom('0');
+    }
+    this.state[srcKey]=this.sStructN(this.state[srcKey]);
+
+    // ── Inject into destination ──
+    let dst=this.state[dstKey];
+
+    if(isExpDen){
+      this.state[dstKey]=new PowNode(dst,node);
+    }else if(isStdDen){
+      this.state[dstKey]=this.sStructN(new OpNode('mult',[node,dst]));
+    }else if(parent&&parent.type==='add'){
+      // Moving a term across = sign negates it
+      // Use negate() which handles double-negative cancellation
+      const negated=this.negate(node);
+      if(dst.type==='add'){dst.children.push(negated);}
+      else{this.state[dstKey]=new OpNode('add',[dst,negated]);}
+    }else if(parent&&parent.type==='mult'){
+      // Moving a mult factor → divide the other side
+      if(this.isNegOne(node)){
+        // -1 coefficient: just flip the sign of the other side
+        this.state[dstKey]=this.sStructN(this.negate(dst));
+      }else{
+        this.state[dstKey]=new DivNode(dst,node);
+      }
+    }else if(parent&&parent.type==='div'){
+      this.state[dstKey]=this.sStructN(new OpNode('mult',[node,dst]));
+    }else if(parent&&parent.type==='pow'&&node===parent.exp){
+      const newExp=node instanceof Atom&&node.val==='2'
+        ?new DivNode(new Atom('1'),new Atom('2'))
+        :new DivNode(new Atom('1'),node);
+      this.state[dstKey]=new PowNode(dst,newExp);
+    }else if(!parent){
+      // Moving whole root — negate it on other side
+      const negated=this.negate(node);
+      this.state[dstKey]=new OpNode('add',[dst,negated]);
+      this.state[srcKey]=new Atom('0');
+    }
+
+    this.state[dstKey]=this.sStructN(this.state[dstKey]);
+    // Second pass: catch cascading double-negatives created by injection
+    this.state[srcKey]=this.sStructN(this.state[srcKey]);
+    this.state[dstKey]=this.sStructN(this.state[dstKey]);
+    this.checkAutoFlip();
+    this.recordStep();
+    this.render();
+    this.status('ok','Good move!');
+  }
+
+  checkAutoFlip(){
+    const isVar=n=>n instanceof Atom&&isNaN(parseFloat(n.val));
+    if(isVar(this.state.rhs)&&!isVar(this.state.lhs)){
+      [this.state.lhs,this.state.rhs]=[this.state.rhs,this.state.lhs];
+    }
+  }
+
+  // ── SIMPLIFY (animated) ──
+  doSimplify(){
+    const lEl=document.getElementById('LHS'),rEl=document.getElementById('RHS');
+    const animOut=el=>{el.classList.remove('chalkin','dissolving');void el.offsetWidth;el.classList.add('dissolving');};
+    animOut(lEl);animOut(rEl);
+    setTimeout(()=>{
+      this.save();
+      this.state.lhs=this.cancelCommonFactors(this.state.lhs);
+      this.state.rhs=this.cancelCommonFactors(this.state.rhs);
+      this.state.lhs=this.sFullN(this.state.lhs);
+      this.state.rhs=this.sFullN(this.state.rhs);
+      this.state.lhs=this.sStructN(this.state.lhs);
+      this.state.rhs=this.sStructN(this.state.rhs);
+      this.checkAutoFlip();this.recordStep();
+      lEl.classList.remove('dissolving');rEl.classList.remove('dissolving');
+      this.render(true);this.status('ok','Simplified!');
+    },380);
+  }
+
+  // ── EXPAND (animated) ──
+  doExpand(){
+    const lEl=document.getElementById('LHS'),rEl=document.getElementById('RHS');
+    const animOut=el=>{el.classList.remove('chalkin','dissolving');void el.offsetWidth;el.classList.add('dissolving');};
+    animOut(lEl);animOut(rEl);
+    setTimeout(()=>{
+      this.save();
+      this.state.lhs=this.expand(this.state.lhs);
+      this.state.rhs=this.expand(this.state.rhs);
+      this.state.lhs=this.sStructN(this.state.lhs);
+      this.state.rhs=this.sStructN(this.state.rhs);
+      this.recordStep();
+      lEl.classList.remove('dissolving');rEl.classList.remove('dissolving');
+      this.render(true);this.status('ok','Brackets expanded!');
+    },380);
+  }
+
+  // ── STEP HISTORY ──
+  recordStep(){
+    this.steps.push({lhs:JSON.parse(JSON.stringify(this.state.lhs)),rhs:JSON.parse(JSON.stringify(this.state.rhs))});
+    this.rebuildHistory();
+  }
+  rebuildHistory(){
+    const h=document.getElementById('stepHistory');h.innerHTML='';
+    this.steps.slice(-4).forEach((s,i)=>{
+      const op=0.1+0.065*i,sz=1.2+i*0.18;
+      const row=document.createElement('div');
+      row.className='step-row';row.style.cssText=`opacity:${op};font-size:${sz}rem;`;
+      row.innerHTML=`<span>${this.nodeToText(this.restore(s.lhs))}</span><span class="step-eq"> = </span><span>${this.nodeToText(this.restore(s.rhs))}</span>`;
+      h.appendChild(row);
+    });
+  }
+
+  // ── NODE → TEXT ──
+  nodeToText(n){
+    if(!n)return'';
+    if(n instanceof Atom){
+      const v=parseFloat(n.val);
+      if(n.val==='-1')return'−1';
+      if(!isNaN(v)&&v<0)return`−${Math.abs(v)}`;
+      return n.val;
+    }
+    if(n.type==='add'){
+      return n.children.map((c,i)=>{
+        const isNeg=this.isNegTerm(c);
+        const isNegAtom=c instanceof Atom&&!isNaN(c.val)&&parseFloat(c.val)<0;
+        const isNegCoeffTerm=c.type==='mult'&&c.children[0] instanceof Atom&&
+                             !isNaN(c.children[0].val)&&parseFloat(c.children[0].val)<0;
+        const s=this.nodeToText(c);
+        if(i===0)return s;
+        if(isNeg||isNegAtom||isNegCoeffTerm)return s;
+        return'+'+s;
+      }).join('');
+    }
+    if(n.type==='mult'){
+      const ch=n.children;
+      if(this.isNegOne(ch[0]))return'−'+ch.slice(1).map(c=>this.nodeToText(c)).join('');
+      return ch.map(c=>this.nodeToText(c)).join('');
+    }
+    if(n.type==='div')return`${this.nodeToText(n.num)}÷${this.nodeToText(n.den)}`;
+    if(n.type==='pow'){
+      const sup={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+      const e=this.nodeToText(n.exp);
+      return`${this.nodeToText(n.base)}${e.split('').map(c=>sup[c]||c).join('')}`;
+    }
+    return'?';
+  }
+
+  // ── RENDER ──
+  render(animate=false){
+    const lC=document.getElementById('LHS'),rC=document.getElementById('RHS');
+    lC.innerHTML='';rC.innerHTML='';
+    const lDom=this.mkDom(this.state.lhs,'LHS',this.state.lhs);
+    const rDom=this.mkDom(this.state.rhs,'RHS',this.state.rhs);
+    if(animate){lDom.classList.add('chalkin');rDom.classList.add('chalkin');}
+    lC.appendChild(lDom);rC.appendChild(rDom);
+
+    // Clear all action zones
+    ['lhsOuter','lhsInner','rhsInner','rhsOuter'].forEach(id=>{
+      document.getElementById(id).innerHTML='';
+    });
+
+    // ── SIMPLIFY: place on whichever side has simplifiable content ──
+    const simplL=this.hasSimplifiable(this.state.lhs)||this.hasCancellable(this.state.lhs);
+    const simplR=this.hasSimplifiable(this.state.rhs)||this.hasCancellable(this.state.rhs);
+    if(simplL||simplR){
+      const b=document.createElement('button');b.className='action-btn';b.textContent='Simplify';
+      b.onclick=e=>{e.stopPropagation();this.doSimplify();};
+      const zone=simplL&&!simplR?'lhsInner':'rhsInner';
+      document.getElementById(zone).appendChild(b);
+    }
+
+    // ── FACTOR: pull common factor out of fractions ──
+    const factorL=this.hasFactorable(this.state.lhs);
+    const factorR=this.hasFactorable(this.state.rhs);
+    if(factorL||factorR){
+      const b=document.createElement('button');b.className='action-btn';b.textContent='Factor';
+      b.onclick=e=>{e.stopPropagation();this.doFactor();};
+      const zone=factorL&&!factorR?'lhsOuter':'rhsOuter';
+      document.getElementById(zone).appendChild(b);
+    }
+
+    // ── EXPAND: place on outer edge of whichever side has expandable content ──
+    const expL=this.hasExpandable(this.state.lhs);
+    const expR=this.hasExpandable(this.state.rhs);
+    if(expL||expR){
+      const b=document.createElement('button');b.className='action-btn';b.textContent='Expand';
+      b.onclick=e=>{e.stopPropagation();this.doExpand();};
+      const zone=expL?'lhsOuter':'rhsOuter';
+      document.getElementById(zone).appendChild(b);
+    }
+  }
+
+  // ── DOM BUILDER ──
+  mkDom(node,side,root,parentType=null){
+    if(!node)return document.createElement('span');
+    const path=this.findPath(root,node.id);
+
+    const np=(node.type==='add'&&(parentType==='mult'||parentType==='pow'))||
+             (node.type==='mult'&&parentType==='pow')||
+             (node.type==='div'&&parentType==='pow');
+
+    // ── ATOM leaf ──
+    if(node instanceof Atom){
+      const ancestorMovable=path?this.getMovable(path,root):null;
+      const isDirectly=ancestorMovable&&ancestorMovable.id===node.id;
+
+      // Check if this atom is inside a numerator — if so it's trapped (red), even
+      // though the div ancestor might be movable as a whole
+      const isInsideNumerator=path&&path.some((n,i)=>{
+        if(i===0)return false;
+        const parent=path[i-1];
+        return parent.type==='div'&&parent.num===n;
+      });
+
+      // Also check if atom is inside a mult that is inside an add but NOT a direct
+      // add child — meaning you can drag the whole mult term but not this atom alone
+      const isInsideMult=path&&path.some((n,i)=>{
+        if(i===0)return false;
+        const parent=path[i-1];
+        return parent.type==='mult'&&parent!==root;
+      });
+
+      // Green only if ancestor is movable AND this atom is accessible (not locked inside numerator)
+      const shouldBeGreen=ancestorMovable&&!isInsideNumerator;
+      const cls=shouldBeGreen?'term-grab':'term-lock';
+
+      const el=document.createElement('span');
+      el.className=cls;el.id=node.id;
+      const displayVal=(node.val==='-1')?'-1':node.val;
+      try{el.innerHTML=katex.renderToString(displayVal,{throwOnError:false,displayMode:false});}
+      catch(e){el.textContent=displayVal;}
+
+      if(shouldBeGreen){
+        el.onmousedown=e=>{
+          e.stopPropagation();
+          if(!isDirectly){
+            // Clicking a component inside a movable term — explain and drag whole term
+            const termLabel=this.nodeToText(ancestorMovable);
+            const nodeLabel=this.nodeToText(node);
+            // Work out what kind of component this is
+            const pathToAncestor=path.slice(0,path.indexOf(ancestorMovable)+1);
+            const parentOfThis=path.length>1?path[path.length-2]:null;
+            let role='';
+            if(parentOfThis&&parentOfThis.type==='mult'){
+              const isCoeff=node instanceof Atom&&!isNaN(node.val);
+              role=isCoeff?`Can't isolate ×${nodeLabel} yet`:`Can't isolate ${nodeLabel} yet`;
+            }else if(parentOfThis&&parentOfThis.type==='pow'){
+              role=`Can't isolate ^${nodeLabel} yet`;
+            }else{
+              role=`Can't isolate ${nodeLabel} yet`;
+            }
+            this.showToast(`${role} — dragging the whole term (${termLabel})`);
+          }
+          this.startDrag(e,ancestorMovable,side);
+        };
+      }else{
+        el.onmousedown=e=>{
+          e.stopPropagation();
+          const hint=path?this.lockHint(node,path,root):'Not movable yet';
+          this.showToast(hint);
+        };
+      }
+      return el;
+    }
+
+    // ── CONTAINER ──
+    const el=document.createElement('div');
+    el.className='node';el.id=node.id;
+    if(np){const p=document.createElement('span');p.className='paren';p.textContent='(';el.appendChild(p);}
+
+    if(node.type==='add'){
+      node.children.forEach((c,i)=>{
+        if(i>0){
+          const isNeg=this.isNegTerm(c);
+          const isNegAtom=c instanceof Atom&&!isNaN(c.val)&&parseFloat(c.val)<0;
+          const isNegCoeffTerm=c.type==='mult'&&c.children[0] instanceof Atom&&
+                               !isNaN(c.children[0].val)&&parseFloat(c.children[0].val)<0;
+          if(!isNeg&&!isNegAtom&&!isNegCoeffTerm){
+            const op=document.createElement('span');op.className='op-plus';op.textContent='+';el.appendChild(op);
+          }
+        }
+        el.appendChild(this.mkDom(c,side,root,'add'));
+      });
+    }
+    else if(node.type==='mult'){
+      const firstChild=node.children[0];
+      const isNegCoeff=firstChild instanceof Atom&&!isNaN(firstChild.val)&&parseFloat(firstChild.val)<0&&!this.isNegOne(firstChild);
+
+      node.children.forEach((c,i)=>{
+        if(i===0&&this.isNegOne(c)){
+          // EDGE CASE: leading -1 as a separate sign (only when coeff IS literally -1)
+          // This makes the − sign independently draggable
+          const multPath=this.findPath(root,node.id);
+          const multMovable=multPath?this.getMovable(multPath,root):null;
+          const negOnePath=this.findPath(root,c.id);
+          const negOneMovable=negOnePath?this.getMovable(negOnePath,root):null;
+          const actualDraggable=negOneMovable||multMovable;
+          const sign=document.createElement('span');
+          sign.className=`neg-sign term-${actualDraggable?'grab':'lock'}`;
+          sign.textContent='−';
+          if(actualDraggable){
+            sign.onmousedown=e=>{e.stopPropagation();this.startDrag(e,actualDraggable,side);};
+          }else{
+            sign.onmousedown=e=>{
+              e.stopPropagation();
+              this.showToast(multPath?this.lockHint(node,multPath,root):'Not movable yet');
+            };
+          }
+          el.appendChild(sign);
+        }else{
+          // Show × between a positive numeric and ANY numeric (including negative like ×−3)
+          if(i>0){
+            const prev=node.children[i-1];
+            const prevIsNegOne=this.isNegOne(prev);
+            const prevReal=prev instanceof Atom&&!isNaN(prev.val)&&!prevIsNegOne&&parseFloat(prev.val)>0;
+            const currIsNum=c instanceof Atom&&!isNaN(c.val);
+            if(prevReal&&currIsNum){
+              const op=document.createElement('span');op.className='op-plus';op.style.margin='0 5px';op.textContent='×';el.appendChild(op);
+            }
+          }
+          el.appendChild(this.mkDom(c,side,root,'mult'));
+        }
+      });
+    }
+    else if(node.type==='div'){
+      const frac=document.createElement('div');frac.className='frac';
+      frac.appendChild(this.mkDom(node.num,side,root,'div'));
+      const line=document.createElement('div');line.className='frac-line';frac.appendChild(line);
+      frac.appendChild(this.mkDom(node.den,side,root,'div'));
+      el.appendChild(frac);
+    }
+    else if(node.type==='pow'){
+      const isRoot=node.exp.type==='div'&&
+        node.exp.num instanceof Atom&&node.exp.num.val==='1'&&
+        node.exp.den instanceof Atom&&node.exp.den.val==='2';
+      if(isRoot){
+        const denNode=node.exp.den;
+        const denPath=this.findPath(root,denNode.id);
+        const denMovable=denPath?this.getMovable(denPath,root):null;
+        const tickCanMove=!!denMovable;
+        const wrapper=document.createElement('div');wrapper.className='root-wrap';
+        const tick=document.createElement('div');
+        tick.className=`root-tick term-${tickCanMove?'grab':'lock'}`;
+        tick.innerHTML=`<svg class="root-svg" viewBox="0 0 10 20" preserveAspectRatio="none"><path d="M0,12 L4,18 L10,0" vector-effect="non-scaling-stroke" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+        tick.onmousedown=e=>{
+          e.stopPropagation();
+          if(tickCanMove)this.startDrag(e,denNode,side);
+          else this.showToast('Remove other terms from this side first, then drag the √ tick');
+        };
+        const content=document.createElement('div');content.className='root-content';
+        content.appendChild(this.mkDom(node.base,side,root,'root'));
+        wrapper.appendChild(tick);wrapper.appendChild(content);
+        el.appendChild(wrapper);
+      }else{
+        el.appendChild(this.mkDom(node.base,side,root,'pow'));
+        const sup=document.createElement('span');
+        sup.className=node.exp.type==='div'?'exp-frac':'exp-sup';
+        const expPath=this.findPath(root,node.exp.id);
+        const expMovable=expPath?this.getMovable(expPath,root):null;
+        const expCanMove=!!expMovable;
+        const expEl=document.createElement('span');
+        expEl.className=`term-${expCanMove?'grab':'lock'}`;
+        expEl.style.cssText='display:inline-flex;align-items:center;';
+        try{expEl.innerHTML=katex.renderToString(this.nodeStr(node.exp),{throwOnError:false,displayMode:false});}
+        catch(e){expEl.textContent=this.nodeStr(node.exp);}
+        if(expCanMove){
+          expEl.onmousedown=e=>{
+            e.stopPropagation();
+            // expMovable is the whole term (e.g. 3x²) not just the exponent
+            // Show a hint explaining we're grabbing the whole term
+            if(expMovable.id!==node.exp.id){
+              const termLabel=this.nodeToText(expMovable);
+              this.showToast(`Can't isolate ^${this.nodeToText(node.exp)} yet — dragging the whole term (${termLabel})`);
+            }
+            this.startDrag(e,expMovable,side);
+          };
+        }else{
+          expEl.onmousedown=e=>{
+            e.stopPropagation();
+            // Completely locked — show why
+            const termLabel=this.nodeToText(root);
+            this.showToast(`Isolate the term (${termLabel}) first — remove outer terms before splitting the exponent`);
+          };
+        }
+        sup.appendChild(expEl);el.appendChild(sup);
+      }
+    }
+
+    if(np){const p=document.createElement('span');p.className='paren';p.textContent=')';el.appendChild(p);}
+    return el;
+  }
+
+  nodeStr(n){
+    if(!n)return'';
+    if(n instanceof Atom)return n.val;
+    if(n.type==='div')return`\\frac{${this.nodeStr(n.num)}}{${this.nodeStr(n.den)}}`;
+    if(n.type==='mult')return n.children.map(c=>this.nodeStr(c)).join('');
+    if(n.type==='add')return n.children.map(c=>this.nodeStr(c)).join('+');
+    return'?';
+  }
+
+  // ── INLINE TOAST ──
+  showToast(msg){
+    const t=document.getElementById('inlineToast');
+    t.textContent=msg;t.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+  }
+
+  // ── DRAG ──
+  startDrag(e,node,side){
+    const labels=this.ghostLabels(node,side);
+    let currentlyInverse=false;
+    const eqEl=document.getElementById('eqSignEl');
+    const getEqMid=()=>eqEl.getBoundingClientRect().left+eqEl.offsetWidth/2;
+
+    const ghost=document.createElement('div');
+    ghost.className='drag-ghost';
+    ghost.textContent=labels.src;
+    ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
+    document.body.appendChild(ghost);
+
+    const spawnSparkle=(x,y,big=false)=>{
+      const cols=['#e8c840','#7de8a0','#f0ede4','#a8e0ff','#ffb0f0'];
+      const count=big?20:3;
+      for(let i=0;i<count;i++){
+        const sp=document.createElement('div');sp.className='sparkle';
+        const angle=Math.random()*Math.PI*2;
+        const dist=big?(45+Math.random()*65):(8+Math.random()*16);
+        const dx=Math.cos(angle)*dist,dy=Math.sin(angle)*dist;
+        const sz=big?(3+Math.random()*5):(1.5+Math.random()*2);
+        const dur=big?(0.35+Math.random()*0.3):(0.22+Math.random()*0.15);
+        sp.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${cols[i%cols.length]};--dx:${dx}px;--dy:${dy}px;--dur:${dur}s;`;
+        document.body.appendChild(sp);setTimeout(()=>sp.remove(),(dur+0.05)*1000);
+      }
+    };
+
+    let lastX=e.clientX,lastY=e.clientY;
+    const mm=ev=>{
+      ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';
+      if(Math.hypot(ev.clientX-lastX,ev.clientY-lastY)>16){
+        spawnSparkle(ev.clientX,ev.clientY,false);lastX=ev.clientX;lastY=ev.clientY;
+      }
+      const mid=getEqMid(),overLHS=ev.clientX<mid,srcIsLHS=side==='LHS';
+      const isInverse=(overLHS&&!srcIsLHS)||(!overLHS&&srcIsLHS);
+      document.getElementById('LHS').classList.toggle('drop-ready',overLHS&&!srcIsLHS);
+      document.getElementById('RHS').classList.toggle('drop-ready',!overLHS&&srcIsLHS);
+      if(isInverse!==currentlyInverse){
+        currentlyInverse=isInverse;
+        spawnSparkle(mid,eqEl.getBoundingClientRect().top+eqEl.offsetHeight/2,true);
+        ghost.classList.remove('inverse');void ghost.offsetWidth;
+        ghost.textContent=isInverse?labels.inv:labels.src;
+        if(isInverse)ghost.classList.add('inverse');
+      }
+    };
+    const mu=ev=>{
+      document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);
+      ghost.remove();
+      document.querySelectorAll('.side').forEach(s=>s.classList.remove('drop-ready'));
+      const target=ev.clientX<getEqMid()?'LHS':'RHS';
+      if(target!==side)this.move(node,target);
+      else this.status('neutral','Drop on the other side to apply the inverse.');
+    };
+    document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+  }
+
+  // ── HELPERS ──
+  findPath(root,id,p=[]){
+    if(!root)return null;
+    const np=[...p,root];if(root.id===id)return np;
+    let r=null;
+    if(root.children)for(const c of root.children){r=this.findPath(c,id,np);if(r)return r;}
+    if(root.num)r=this.findPath(root.num,id,np)||this.findPath(root.den,id,np);
+    if(root.base)r=this.findPath(root.base,id,np)||this.findPath(root.exp,id,np);
+    return r;
+  }
+  save(){this.history.push(JSON.stringify(this.state));}
+  flip(){
+    this.save();[this.state.lhs,this.state.rhs]=[this.state.rhs,this.state.lhs];
+    this.recordStep();this.render();this.status('ok','Sides flipped.');
+  }
+  status(type,msg){
+    const d=document.getElementById('sDot'),t=document.getElementById('sTxt');
+    d.className='s-dot'+(type==='ok'?' ok':type==='err'?' err':'');
+    t.className='s-txt'+(type==='ok'?' ok':type==='err'?' err':'');
+    t.textContent=msg;
+    if(type==='err'){clearTimeout(this._st);this._st=setTimeout(()=>this.status('neutral','Hover a term — green = draggable.'),3500);}
+  }
+}
+
+const engine=new Engine();
+engine.load();
+
+// ── CALCULATOR KEYBOARD ─────────────────────────────────────
+
+function toggleKeyboard(){
+  const kb  = document.getElementById('calcKeyboard');
+  const btn = document.getElementById('kbToggle');
+  const row = document.querySelector('.input-row');
+  const open = kb.classList.toggle('open');
+  btn.classList.toggle('active', open);
+  if(row) row.classList.toggle('kb-hidden', open);
+  syncCalcDisplay();
+  document.getElementById('eqInput').focus();
+}
+
+function calcClear(){
+  const inp = document.getElementById('eqInput');
+  inp.value = ''; inp.focus(); syncCalcDisplay();
+}
+
+function calcMoveCursor(dir){
+  const inp = document.getElementById('eqInput');
+  const cur = inp.selectionStart ?? inp.value.length;
+  const pos = Math.max(0, Math.min(inp.value.length, cur + dir));
+  inp.focus(); inp.setSelectionRange(pos, pos); syncCalcDisplay();
+}
+
+function calcInsert(str){
+  const inp = document.getElementById('eqInput');
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd   ?? inp.value.length;
+  inp.value = inp.value.slice(0,s) + str + inp.value.slice(e);
+  const pos = s + str.length;
+  inp.focus(); inp.setSelectionRange(pos, pos); syncCalcDisplay();
+}
+
+function calcBackspace(){
+  const inp = document.getElementById('eqInput');
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd   ?? inp.value.length;
+  if(s !== e){ inp.value = inp.value.slice(0,s)+inp.value.slice(e); inp.setSelectionRange(s,s); }
+  else if(s>0){ inp.value = inp.value.slice(0,s-1)+inp.value.slice(s); inp.setSelectionRange(s-1,s-1); }
+  inp.focus(); syncCalcDisplay();
+}
+
+// Fraction key: wraps selection or preceding term as numerator, cursor goes into den
+function calcInsertFrac(){
+  const inp = document.getElementById('eqInput');
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd   ?? inp.value.length;
+  const v = inp.value;
+  let result, newPos;
+  if(s !== e){
+    const sel = v.slice(s,e);
+    const num = (sel.startsWith('(') && sel.endsWith(')')) ? sel : `(${sel})`;
+    result = v.slice(0,s) + num + '/()' + v.slice(e);
+    newPos = s + num.length + 2; // inside den
+  } else {
+    const before = v.slice(0,s);
+    const gm = before.match(/(\([^()]*\))$/);
+    const tm = before.match(/([0-9]+\.?[0-9]*|[a-zA-Z][a-zA-Z0-9]*)$/);
+    if(gm){
+      const ps = s - gm[1].length;
+      const num = gm[1];
+      result = v.slice(0,ps) + num + '/()' + v.slice(s);
+      newPos = ps + num.length + 2;
+    } else if(tm){
+      const ps = s - tm[1].length;
+      const num = `(${tm[1]})`;
+      result = v.slice(0,ps) + num + '/()' + v.slice(s);
+      newPos = ps + num.length + 2;
+    } else {
+      result = v.slice(0,s) + '()/()' + v.slice(e);
+      newPos = s + 1; // inside num
+    }
+  }
+  inp.value = result; inp.focus(); inp.setSelectionRange(newPos, newPos); syncCalcDisplay();
+}
+
+// Sqrt key: wraps selection or preceding term inside sqrt(...)
+function calcInsertSqrt(){
+  const inp = document.getElementById('eqInput');
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd   ?? inp.value.length;
+  const v = inp.value;
+  let result, newPos;
+  if(s !== e){
+    const sel = v.slice(s,e);
+    const inner = (sel.startsWith('(') && sel.endsWith(')')) ? sel.slice(1,-1) : sel;
+    const ins = `sqrt(${inner})`;
+    result = v.slice(0,s) + ins + v.slice(e);
+    newPos = s + ins.length;
+  } else {
+    const before = v.slice(0,s);
+    const gm = before.match(/(\([^()]*\))$/);
+    const tm = before.match(/([0-9]+\.?[0-9]*|[a-zA-Z][a-zA-Z0-9]*)$/);
+    if(gm){
+      const ps = s - gm[1].length;
+      const ins = `sqrt(${gm[1].slice(1,-1)})`;
+      result = v.slice(0,ps) + ins + v.slice(s);
+      newPos = ps + ins.length;
+    } else if(tm){
+      const ps = s - tm[1].length;
+      const ins = `sqrt(${tm[1]})`;
+      result = v.slice(0,ps) + ins + v.slice(s);
+      newPos = ps + ins.length;
+    } else {
+      result = v.slice(0,s) + 'sqrt()' + v.slice(e);
+      newPos = s + 5; // inside sqrt(|)
+    }
+  }
+  inp.value = result; inp.focus(); inp.setSelectionRange(newPos, newPos); syncCalcDisplay();
+}
+
+// ── PREVIEW RENDERER ────────────────────────────────────────
+function syncCalcDisplay(){
+  const inp = document.getElementById('eqInput');
+  if(!inp) return;
+  const raw = inp.value;
+  const cursor = inp.selectionStart ?? raw.length;
+  const preview = document.getElementById('calcPreviewMath');
+  if(!preview) return;
+  if(!raw){
+    preview.innerHTML = '<span style="color:#444;font-family:\'Courier New\',monospace;font-size:1.4rem;font-style:italic">start typing...</span>';
+    return;
+  }
+  preview.innerHTML = '';
+  parsePreviewTokens(raw).forEach(tok => {
+    const el = renderPreviewToken(tok, cursor, raw, inp);
+    if(el) preview.appendChild(el);
+  });
+}
+
+function parsePreviewTokens(s){
+  const tokens = []; let i = 0;
+  while(i < s.length){
+    // sqrt(...)
+    if(s.slice(i, i+5) === 'sqrt('){
+      const open = i+5; let d=1, j=open;
+      while(j<s.length && d>0){ if(s[j]==='(')d++; else if(s[j]===')')d--; j++; }
+      tokens.push({type:'sqrt', start:i, end:j, bodyStart:open, bodyEnd:j-1});
+      i=j; continue;
+    }
+    // (num)/(den) fraction
+    if(s[i]==='('){
+      let d=1, j=i+1;
+      while(j<s.length && d>0){ if(s[j]==='(')d++; else if(s[j]===')')d--; j++; }
+      if(j<s.length && s[j]==='/' && j+1<s.length && s[j+1]==='('){
+        let d2=1, k=j+2;
+        while(k<s.length && d2>0){ if(s[k]==='(')d2++; else if(s[k]===')')d2--; k++; }
+        tokens.push({type:'frac', start:i, end:k, numStart:i+1, numEnd:j-1, denStart:j+2, denEnd:k-1});
+        i=k; continue;
+      }
+    }
+    // plain text
+    let j=i+1;
+    while(j<s.length && s.slice(j,j+5)!=='sqrt(' && s[j]!=='(') j++;
+    tokens.push({type:'text', text:s.slice(i,j), start:i, end:j});
+    i=j;
+  }
+  return tokens;
+}
+
+function renderPreviewToken(tok, cursor, raw, inp){
+  const go = pos => { inp.setSelectionRange(pos,pos); inp.focus(); syncCalcDisplay(); };
+
+  if(tok.type==='text'){
+    const el = document.createElement('span');
+    el.className = 'ptok';
+    const rel = cursor - tok.start;
+    if(cursor >= tok.start && cursor <= tok.end && rel >= 0 && rel <= tok.text.length){
+      el.innerHTML = dispText(tok.text.slice(0,rel)) + '<span class="preview-cursor"></span>' + dispText(tok.text.slice(rel));
+    } else {
+      el.innerHTML = dispText(tok.text);
+    }
+    el.onclick = () => go(tok.end);
+    return el;
+  }
+
+  if(tok.type==='frac'){
+    const numT = raw.slice(tok.numStart, tok.numEnd);
+    const denT = raw.slice(tok.denStart, tok.denEnd);
+    const inNum = cursor > tok.numStart && cursor <= tok.numEnd;
+    const inDen = cursor > tok.denStart && cursor <= tok.denEnd;
+    const el = document.createElement('span'); el.className='pfrac';
+
+    const mkSlot = (text, isIn, isEmpty, clickPos, activeStart) => {
+      const d = document.createElement('div');
+      d.className = 'pfrac-part' + (isIn?' slot-active':'') + (isEmpty?' slot-empty':'');
+      if(isIn && !isEmpty){
+        const rel = cursor - activeStart;
+        d.innerHTML = dispText(text.slice(0,rel)) + '<span class="preview-cursor"></span>' + dispText(text.slice(rel));
+      } else if(isIn){
+        d.innerHTML = '<span class="preview-cursor"></span>';
+      } else {
+        d.textContent = isEmpty ? (isNum?'num':'den') : dispText(text);
+      }
+      d.onclick = e => { e.stopPropagation(); go(clickPos); };
+      return d;
+    };
+
+    const numEl = document.createElement('div');
+    numEl.className = 'pfrac-part' + (inNum?' slot-active':'') + (numT===''?' slot-empty':'');
+    if(inNum && numT!==''){
+      const rel = cursor - tok.numStart;
+      numEl.innerHTML = dispText(numT.slice(0,rel)) + '<span class="preview-cursor"></span>' + dispText(numT.slice(rel));
+    } else if(inNum){
+      numEl.innerHTML = '<span class="preview-cursor"></span>';
+    } else { numEl.textContent = numT===''?'num':dispText(numT); }
+    numEl.onclick = e => { e.stopPropagation(); go(numT===''?tok.numStart:tok.numEnd); };
+
+    const line = document.createElement('div'); line.className='pfrac-line';
+
+    const denEl = document.createElement('div');
+    denEl.className = 'pfrac-part' + (inDen?' slot-active':'') + (denT===''?' slot-empty':'');
+    if(inDen && denT!==''){
+      const rel = cursor - tok.denStart;
+      denEl.innerHTML = dispText(denT.slice(0,rel)) + '<span class="preview-cursor"></span>' + dispText(denT.slice(rel));
+    } else if(inDen){
+      denEl.innerHTML = '<span class="preview-cursor"></span>';
+    } else { denEl.textContent = denT===''?'den':dispText(denT); }
+    denEl.onclick = e => { e.stopPropagation(); go(denT===''?tok.denStart:tok.denEnd); };
+
+    el.appendChild(numEl); el.appendChild(line); el.appendChild(denEl);
+    el.onclick = () => go(numT===''?tok.numStart:tok.numEnd);
+    return el;
+  }
+
+  if(tok.type==='sqrt'){
+    const body = raw.slice(tok.bodyStart, tok.bodyEnd);
+    const inSq = cursor > tok.bodyStart && cursor <= tok.bodyEnd;
+    const el = document.createElement('span'); el.className='psqrt';
+    const tick = document.createElement('span'); tick.className='psqrt-tick'; tick.textContent='√';
+    const bd = document.createElement('span'); bd.className='psqrt-body';
+    if(inSq && body!==''){
+      const rel = cursor - tok.bodyStart;
+      bd.innerHTML = dispText(body.slice(0,rel)) + '<span class="preview-cursor"></span>' + dispText(body.slice(rel));
+    } else if(inSq){
+      bd.innerHTML = '<span class="preview-cursor"></span>';
+    } else { bd.innerHTML = body ? dispText(body) : '<span style="color:#444">□</span>'; }
+    el.appendChild(tick); el.appendChild(bd);
+    el.onclick = () => go(body?tok.bodyEnd:tok.bodyStart);
+    return el;
+  }
+  return null;
+}
+
+function dispText(s){
+  if(!s) return '';
+  const sup = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return s
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*/g,'×').replace(/-/g,'−')
+    .replace(/\^([0-9]+)/g, (_,e) => e.split('').map(c=>sup[c]||c).join(''));
+}
+
+// Wire digit/op/var/eq keys
+document.querySelectorAll('.ck[data-ins]').forEach(btn => {
+  btn.addEventListener('mousedown', e => e.preventDefault()); // keep focus on input
+  btn.addEventListener('click', () => calcInsert(btn.dataset.ins));
+});
+// Keep focus on input when pressing calc buttons
+document.querySelectorAll('.ck').forEach(btn => {
+  btn.addEventListener('mousedown', e => e.preventDefault());
+});
+
+const _inp = document.getElementById('eqInput');
+_inp.addEventListener('input', syncCalcDisplay);
+_inp.addEventListener('click', syncCalcDisplay);
+_inp.addEventListener('keyup', syncCalcDisplay);
+syncCalcDisplay();
+
+</script>
+</body>
+</html>

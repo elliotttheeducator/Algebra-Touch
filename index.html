@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Algebra Touch — Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --board:#2c5e3f;--board2:#245034;--board3:#1b3d27;
+  --chalk:#f0ede4;--chalk2:#c8c4b8;--chalk3:#8a8780;
+  --wood:#6b3d1e;--wood2:#8b5e2a;--wood3:#3d2010;
+  --gold:#e8c840;--green:#50c878;--blue:#8ab8f5;
+}
+html,body{height:100%;}
+body{
+  min-height:100vh;display:flex;flex-direction:column;
+  font-family:'Inter',sans-serif;color:var(--chalk);user-select:none;
+  background:var(--board3);
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.45;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* ── HEADER ── */
+.wood-frame{
+  background:linear-gradient(180deg,var(--wood2) 0%,var(--wood) 50%,var(--wood3) 100%);
+  padding:0 2rem;border-bottom:5px solid var(--wood3);
+  box-shadow:0 4px 24px rgba(0,0,0,.55);position:relative;z-index:10;
+}
+.wood-inner{display:flex;align-items:center;gap:1rem;padding:1.1rem 0;flex-wrap:wrap;}
+.brand{font-family:'Caveat',cursive;font-size:2rem;font-weight:700;color:var(--chalk);text-shadow:1px 1px 4px rgba(0,0,0,.5);white-space:nowrap;}
+.brand em{color:var(--gold);font-style:normal;}
+.tagline{font-size:.85rem;color:rgba(240,237,228,.6);margin-left:.2rem;}
+
+/* ── BOARD ── */
+.blackboard{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  background:var(--board);position:relative;overflow:hidden;
+  padding:3rem 2rem 2rem;
+}
+.blackboard::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:repeating-linear-gradient(180deg,transparent 0,transparent 47px,rgba(255,255,255,.02) 48px);
+}
+.board-head{position:relative;z-index:1;text-align:center;margin-bottom:2.5rem;}
+.board-head h1{font-family:'Caveat',cursive;font-size:2.4rem;font-weight:700;color:var(--chalk);}
+.board-head p{font-size:.95rem;color:var(--chalk3);margin-top:.4rem;}
+
+/* ── TOOL GRID ── */
+.tool-grid{
+  position:relative;z-index:1;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:1.75rem;width:100%;max-width:960px;
+}
+.tool-card{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:.6rem;padding:2rem 1.5rem 1.7rem;border-radius:16px;
+  border:2px dashed rgba(255,255,255,.22);
+  background:rgba(0,0,0,.12);
+  text-decoration:none;color:var(--chalk);cursor:pointer;
+  transition:border-color .2s,background .2s,transform .15s,box-shadow .2s;
+}
+.tool-card:hover{
+  border-style:solid;border-color:var(--green);
+  background:rgba(80,200,120,.08);
+  transform:translateY(-4px);
+  box-shadow:0 10px 34px rgba(0,0,0,.35),0 0 40px rgba(80,200,120,.18);
+}
+.tool-icon{font-size:2.6rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));}
+.tool-name{font-family:'Caveat',cursive;font-size:1.7rem;font-weight:700;color:var(--chalk);}
+.tool-card:hover .tool-name{color:var(--gold);}
+.tool-desc{font-size:.82rem;color:var(--chalk3);line-height:1.5;}
+.tool-launch{
+  margin-top:.4rem;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--wood3);background:var(--gold);padding:5px 16px;border-radius:20px;
+  opacity:0;transform:translateY(4px);transition:opacity .2s,transform .2s;
+}
+.tool-card:hover .tool-launch{opacity:1;transform:translateY(0);}
+
+/* Placeholder "more coming" card */
+.tool-card.placeholder{
+  border-color:rgba(255,255,255,.12);color:var(--chalk3);cursor:default;
+}
+.tool-card.placeholder:hover{
+  transform:none;box-shadow:none;background:rgba(0,0,0,.12);
+  border-color:rgba(255,255,255,.12);
+}
+.tool-card.placeholder .tool-icon{opacity:.4;}
+.tool-card.placeholder .tool-name{color:var(--chalk3);}
+
+/* ── TRAY ── */
+.chalk-tray{
+  background:var(--board3);border-top:3px solid var(--wood3);
+  padding:.6rem 1.2rem;text-align:center;position:relative;z-index:5;
+}
+.chalk-tray span{font-size:.78rem;color:var(--chalk3);}
+</style>
+</head>
+<body>
+<div class="wood-frame">
+  <div class="wood-inner">
+    <div class="brand">✏ Algebra<em>Touch</em></div>
+    <span class="tagline">hands-on maths tools</span>
+  </div>
+</div>
+
+<div class="blackboard">
+  <div class="board-head">
+    <h1>Pick a tool</h1>
+    <p>Drag, drop and build your way through algebra.</p>
+  </div>
+
+  <div class="tool-grid" id="toolGrid"></div>
+</div>
+
+<div class="chalk-tray">
+  <span id="trayTxt">Loading tools…</span>
+</div>
+
+<script>
+// ── TOOL REGISTRY ──────────────────────────────────────────────
+// To add a new tool: drop its HTML file in /tools and add an entry here.
+const TOOLS=[
+  {
+    id:'transposer',
+    icon:'⚖',
+    name:'Transposer',
+    desc:'Drag terms across the equals sign — watch the inverse operation apply itself.',
+    file:'tools/transposer.html'
+  },
+  {
+    id:'factoriser',
+    icon:'✏',
+    name:'Factoriser',
+    desc:'Underline the HCF, circle the brackets, and rebuild the factorised form.',
+    file:'tools/factoriser.html'
+  }
+];
+
+function buildGrid(){
+  const grid=document.getElementById('toolGrid');
+  grid.innerHTML='';
+  TOOLS.forEach(t=>{
+    const a=document.createElement('a');
+    a.className='tool-card';
+    a.href=t.file;
+    a.innerHTML=`
+      <div class="tool-icon">${t.icon}</div>
+      <div class="tool-name">${t.name}</div>
+      <div class="tool-desc">${t.desc}</div>
+      <div class="tool-launch">Launch →</div>
+    `;
+    grid.appendChild(a);
+  });
+  const ph=document.createElement('div');
+  ph.className='tool-card placeholder';
+  ph.innerHTML=`
+    <div class="tool-icon">➕</div>
+    <div class="tool-name">More soon</div>
+    <div class="tool-desc">New tools land here as they're built.</div>
+  `;
+  grid.appendChild(ph);
+  document.getElementById('trayTxt').textContent=`${TOOLS.length} tool${TOOLS.length===1?'':'s'} ready.`;
+}
+buildGrid();
+</script>
+</body>
+</html>
