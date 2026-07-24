@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Algebra Touch</title>
+<title>Equation Balancer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
@@ -23,6 +23,9 @@ body{background:var(--board3);color:var(--chalk);font-family:'Inter',sans-serif;
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.45;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");}
 .wood-frame{background:linear-gradient(180deg,var(--wood2) 0%,var(--wood) 50%,var(--wood3) 100%);padding:0 2rem;border-bottom:5px solid var(--wood3);box-shadow:0 4px 24px rgba(0,0,0,0.55);position:relative;z-index:10;}
 .wood-inner{display:flex;align-items:center;gap:1.5rem;padding:.9rem 0;flex-wrap:wrap;}
+.wood-inner-stacked{flex-direction:column;align-items:stretch;gap:.55rem;padding:.65rem 0;}
+.wood-row1{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+.wood-row2{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
 .brand{font-family:'Caveat',cursive;font-size:1.7rem;font-weight:700;color:var(--chalk);text-shadow:1px 1px 4px rgba(0,0,0,0.5);white-space:nowrap;}
 .brand em{color:var(--gold);font-style:normal;}
 .input-row{display:flex;gap:8px;flex:1;max-width:580px;}
@@ -65,6 +68,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .term-lock:hover,.term-lock:hover .katex{color:var(--col-lock)!important;}
 @keyframes wiggle{0%,100%{transform:translateX(0);}20%{transform:translateX(-3px);}50%{transform:translateX(3px);}75%{transform:translateX(-2px);}}
 .term-lock:hover{animation:wiggle .35s ease;}
+.term-plain{cursor:default;color:var(--chalk);}
 @keyframes dissolve{0%{opacity:1;filter:blur(0)}70%{opacity:.5;filter:blur(2px)}100%{opacity:0;filter:blur(5px)}}
 @keyframes chalkin{0%{opacity:0;filter:blur(4px);transform:scale(.88)}100%{opacity:1;filter:blur(0);transform:scale(1)}}
 .dissolving{animation:dissolve .38s ease-in forwards;}
@@ -214,20 +218,73 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .ck-load:hover{ background:#d8a800; }
 #kbToggle.active{ background:rgba(232,200,64,.18); color:var(--gold); border-color:rgba(232,200,64,.35); }
 
+/* ── MODE SWITCH ── */
+.mode-switch{display:flex;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px;gap:2px;flex-shrink:0;}
+.ms-btn{background:transparent;border:none;color:var(--chalk3);padding:6px 14px;border-radius:16px;font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s;}
+.ms-btn.active{background:var(--gold);color:var(--wood3);}
+.ms-btn:not(.active):hover{color:var(--chalk);background:rgba(255,255,255,.08);}
+
+/* ── BALANCE SCALE ── */
+#scaleZone{display:none;flex-direction:column;align-items:center;justify-content:flex-end;position:relative;z-index:1;height:0;overflow:hidden;transition:height .4s ease;flex-shrink:0;}
+#scaleZone.on{display:flex;height:150px;}
+.scale-wrap{position:relative;width:260px;height:140px;opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease;}
+.scale-wrap.show{opacity:1;transform:none;}
+.scale-fulcrum{position:absolute;bottom:0;left:50%;width:0;height:0;transform:translateX(-50%);border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:64px solid var(--wood2);filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));}
+.scale-post{position:absolute;bottom:60px;left:50%;width:5px;height:14px;background:var(--wood2);transform:translateX(-50%);border-radius:2px;}
+.scale-beam{position:absolute;bottom:70px;left:50%;width:230px;height:5px;background:var(--chalk2);border-radius:3px;transform:translateX(-50%) rotate(0deg);transform-origin:center center;transition:transform .6s cubic-bezier(.34,1.4,.64,1);box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.scale-beam.tip-left{transform:translateX(-50%) rotate(-9deg);}
+.scale-beam.tip-right{transform:translateX(-50%) rotate(9deg);}
+.scale-pan{position:absolute;top:4px;width:58px;height:36px;border:2px solid var(--chalk2);border-top:none;border-radius:0 0 26px 26px;background:rgba(240,237,228,.05);}
+.scale-pan.left{left:2px;}
+.scale-pan.right{right:2px;}
+.scale-string{position:absolute;top:-16px;left:2px;width:1.5px;height:16px;background:var(--chalk3);}
+.scale-string.r{left:auto;right:2px;}
+
+/* ── CHIP BUILDER ── */
+#chipBuilder{display:none;flex-direction:column;gap:.5rem;background:var(--board3);border-top:3px solid var(--wood3);padding:.7rem 1.2rem;position:relative;z-index:5;}
+#chipBuilder.on{display:flex;}
+.cb-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center;}
+.cb-op{background:#181400;color:var(--gold);border:1px solid rgba(232,200,64,.25);border-radius:6px;min-width:42px;height:38px;font-family:'Courier New',monospace;font-size:1.05rem;font-weight:700;cursor:pointer;transition:background .12s;}
+.cb-op:hover{background:#221c00;}
+.cb-op.active{background:var(--gold);color:var(--wood3);}
+.cb-operand{width:110px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-bottom:2px solid rgba(255,255,255,.3);color:var(--chalk);padding:7px 10px;border-radius:5px;font-family:'Caveat',cursive;font-size:1.15rem;outline:none;text-align:center;}
+.cb-operand:focus{border-bottom-color:var(--gold);}
+.cb-operand:disabled{opacity:.35;}
+.cb-pad{display:grid;grid-template-columns:repeat(4,32px);gap:3px;}
+.cb-key{background:#1e1e1e;color:#e0e0e0;border:1px solid #2a2a2a;border-bottom:2px solid #000;border-radius:4px;height:30px;font-family:'Courier New',monospace;font-size:.85rem;cursor:pointer;}
+.cb-key:hover{background:#272727;}
+.cb-build{background:var(--gold);color:var(--wood3);border:none;padding:8px 20px;border-radius:5px;font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;}
+.cb-build:hover{filter:brightness(1.1);}
+.cb-preview{font-family:'Caveat',cursive;font-size:1.3rem;color:var(--gold);min-height:1.6rem;text-align:center;flex:1;}
+.chip-tray{display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;min-height:44px;align-items:center;}
+.op-chip{display:inline-flex;align-items:center;justify-content:center;padding:6px 18px;border-radius:20px;border:2px solid var(--gold);color:var(--gold);background:rgba(232,200,64,.08);font-family:'Caveat',cursive;font-size:1.4rem;cursor:grab;box-shadow:0 3px 12px rgba(232,200,64,.25);transition:transform .1s,opacity .15s;}
+.op-chip:hover{transform:translateY(-2px);}
+.op-chip.applied-lhs.applied-rhs{opacity:.35;cursor:default;}
+.chip-ghost{position:fixed;pointer-events:none;z-index:9999;display:inline-flex;align-items:center;justify-content:center;padding:6px 18px;border-radius:20px;border:2px solid var(--gold);color:var(--gold);background:rgba(20,28,20,.9);font-family:'Caveat',cursive;font-size:1.4rem;box-shadow:0 8px 26px rgba(0,0,0,.5);transform:translate(-50%,-50%);white-space:nowrap;}
+.chip-hint{font-size:.7rem;color:var(--chalk3);text-align:center;}
+
 </style>
 </head>
 <body>
 <div class="wood-frame">
-  <div class="wood-inner">
-    <a class="btn ghost" href="../index.html" title="Back to hub" style="text-decoration:none;display:inline-flex;align-items:center;">🏠 Hub</a>
-    <div class="brand">✏ Algebra<em>Touch</em></div>
-    <div class="input-row">
-      <input class="eq-in" id="eqInput" value="3x^2 + 5 = 32" spellcheck="false">
-      <button class="btn" onclick="engine.load()">Load</button>
-      <button class="btn ghost" onclick="calcClear()">Clear</button>
-      <button class="btn ghost" onclick="engine.undo()">Undo</button>
+  <div class="wood-inner wood-inner-stacked">
+    <div class="wood-row1">
+      <a class="btn ghost" href="../index.html" title="Back to hub" style="text-decoration:none;display:inline-flex;align-items:center;">🏠 Hub</a>
+      <div class="brand">⚖ Equation<em>Balancer</em></div>
+      <div class="mode-switch" id="modeSwitch">
+        <button class="ms-btn active" data-mode="cross" type="button">Cross-drag</button>
+        <button class="ms-btn" data-mode="balance" type="button">Balance</button>
+      </div>
     </div>
-    <button class="btn ghost kb-toggle-btn" id="kbToggle" onclick="toggleKeyboard()" title="Toggle calculator">⌨</button>
+    <div class="wood-row2">
+      <div class="input-row">
+        <input class="eq-in" id="eqInput" value="3x^2 + 5 = 32" spellcheck="false">
+        <button class="btn" onclick="doLoad()">Load</button>
+        <button class="btn ghost" onclick="calcClear()">Clear</button>
+        <button class="btn ghost" onclick="engine.undo()">Undo</button>
+      </div>
+      <button class="btn ghost kb-toggle-btn" id="kbToggle" onclick="toggleKeyboard()" title="Toggle calculator">⌨</button>
+    </div>
   </div>
 </div>
 <div id="calcKeyboard" class="calc-keyboard">
@@ -274,7 +331,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     <button class="ck ck-arrow" onclick="calcMoveCursor(1)">▶</button>
     <button class="ck ck-eq" data-ins="=">=</button>
     <button class="ck ck-clr" onclick="calcClear()">CLR</button>
-    <button class="ck ck-load" style="grid-column:span 2" onclick="engine.load()">LOAD</button>
+    <button class="ck ck-load" style="grid-column:span 2" onclick="doLoad()">LOAD</button>
   </div>
 </div>
 
@@ -294,9 +351,58 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     <div id="rhsOuter" class="action-zone action-zone-outer"></div>
   </div>
   <div id="inlineToast"></div>
+  <div id="scaleZone">
+    <div class="scale-wrap" id="scaleWrap">
+      <div class="scale-beam" id="scaleBeam">
+        <div class="scale-pan left"><span class="scale-string"></span><span class="scale-string r"></span></div>
+        <div class="scale-pan right"><span class="scale-string"></span><span class="scale-string r"></span></div>
+      </div>
+      <div class="scale-post"></div>
+      <div class="scale-fulcrum"></div>
+    </div>
+  </div>
+</div>
+<div id="chipBuilder">
+  <div class="cb-row">
+    <button class="cb-op" data-op="+" type="button">+</button>
+    <button class="cb-op" data-op="-" type="button">−</button>
+    <button class="cb-op" data-op="*" type="button">×</button>
+    <button class="cb-op" data-op="/" type="button">÷</button>
+    <button class="cb-op" data-op="^" type="button">^</button>
+    <button class="cb-op" data-op="sqrt" type="button">√</button>
+    <input class="cb-operand" id="cbOperand" placeholder="number" inputmode="decimal" autocomplete="off">
+    <button class="cb-build" id="cbBuild" type="button">Build</button>
+  </div>
+  <div class="cb-row">
+    <div class="cb-pad">
+      <button class="cb-key" data-d="7" type="button">7</button>
+      <button class="cb-key" data-d="8" type="button">8</button>
+      <button class="cb-key" data-d="9" type="button">9</button>
+      <button class="cb-key" data-d="del" type="button">⌫</button>
+      <button class="cb-key" data-d="4" type="button">4</button>
+      <button class="cb-key" data-d="5" type="button">5</button>
+      <button class="cb-key" data-d="6" type="button">6</button>
+      <button class="cb-key" data-d="." type="button">.</button>
+      <button class="cb-key" data-d="1" type="button">1</button>
+      <button class="cb-key" data-d="2" type="button">2</button>
+      <button class="cb-key" data-d="3" type="button">3</button>
+      <button class="cb-key" data-d="0" type="button">0</button>
+    </div>
+    <div class="cb-preview" id="cbPreview">Pick an operation…</div>
+  </div>
+  <div class="chip-tray" id="chipTray"></div>
+  <div class="chip-hint">Build an operation, then drag the chip onto a side. Do it to both sides to keep the scale level.</div>
+</div>
+<div class="modal-overlay" id="balanceModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-icon">⚖</div>
+    <div class="modal-title">Balanced!</div>
+    <div class="modal-msg">Whatever you do to one side, you must do to the other — or the scale won't stay level.</div>
+    <button class="modal-ok" id="balanceModalOk" type="button">Got it</button>
+  </div>
 </div>
 <div class="chalk-tray">
-  <div class="tray-tips">
+  <div class="tray-tips" id="trayTipsCross">
     <span class="tip"><span class="tip-key">Hover</span> terms — green = drag, red = locked</span>
     <span class="tip-sep">·</span>
     <span class="tip"><span class="tip-key">Drag across =</span> to apply inverse</span>
@@ -1206,14 +1312,18 @@ class Engine{
       });
 
       // Green only if ancestor is movable AND this atom is accessible (not locked inside numerator)
-      const shouldBeGreen=ancestorMovable&&!isInsideNumerator;
-      const cls=shouldBeGreen?'term-grab':'term-lock';
+      const shouldBeGreen=MODE==='cross'&&ancestorMovable&&!isInsideNumerator;
+      const cls=MODE!=='cross'?'term-plain':(shouldBeGreen?'term-grab':'term-lock');
 
       const el=document.createElement('span');
       el.className=cls;el.id=node.id;
       const displayVal=(node.val==='-1')?'-1':node.val;
       try{el.innerHTML=katex.renderToString(displayVal,{throwOnError:false,displayMode:false});}
       catch(e){el.textContent=displayVal;}
+
+      if(MODE!=='cross'){
+        return el;
+      }
 
       if(shouldBeGreen){
         el.onmousedown=e=>{
@@ -1279,11 +1389,13 @@ class Engine{
           const multMovable=multPath?this.getMovable(multPath,root):null;
           const negOnePath=this.findPath(root,c.id);
           const negOneMovable=negOnePath?this.getMovable(negOnePath,root):null;
-          const actualDraggable=negOneMovable||multMovable;
+          const actualDraggable=MODE==='cross'&&(negOneMovable||multMovable);
           const sign=document.createElement('span');
-          sign.className=`neg-sign term-${actualDraggable?'grab':'lock'}`;
+          sign.className=MODE!=='cross'?'neg-sign term-plain':`neg-sign term-${actualDraggable?'grab':'lock'}`;
           sign.textContent='−';
-          if(actualDraggable){
+          if(MODE!=='cross'){
+            // no-op in balance mode
+          }else if(actualDraggable){
             sign.onmousedown=e=>{e.stopPropagation();this.startDrag(e,actualDraggable,side);};
           }else{
             sign.onmousedown=e=>{
@@ -1322,16 +1434,18 @@ class Engine{
         const denNode=node.exp.den;
         const denPath=this.findPath(root,denNode.id);
         const denMovable=denPath?this.getMovable(denPath,root):null;
-        const tickCanMove=!!denMovable;
+        const tickCanMove=MODE==='cross'&&!!denMovable;
         const wrapper=document.createElement('div');wrapper.className='root-wrap';
         const tick=document.createElement('div');
-        tick.className=`root-tick term-${tickCanMove?'grab':'lock'}`;
+        tick.className=MODE!=='cross'?'root-tick term-plain':`root-tick term-${tickCanMove?'grab':'lock'}`;
         tick.innerHTML=`<svg class="root-svg" viewBox="0 0 10 20" preserveAspectRatio="none"><path d="M0,12 L4,18 L10,0" vector-effect="non-scaling-stroke" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
-        tick.onmousedown=e=>{
-          e.stopPropagation();
-          if(tickCanMove)this.startDrag(e,denNode,side);
-          else this.showToast('Remove other terms from this side first, then drag the √ tick');
-        };
+        if(MODE==='cross'){
+          tick.onmousedown=e=>{
+            e.stopPropagation();
+            if(tickCanMove)this.startDrag(e,denNode,side);
+            else this.showToast('Remove other terms from this side first, then drag the √ tick');
+          };
+        }
         const content=document.createElement('div');content.className='root-content';
         content.appendChild(this.mkDom(node.base,side,root,'root'));
         wrapper.appendChild(tick);wrapper.appendChild(content);
@@ -1342,13 +1456,15 @@ class Engine{
         sup.className=node.exp.type==='div'?'exp-frac':'exp-sup';
         const expPath=this.findPath(root,node.exp.id);
         const expMovable=expPath?this.getMovable(expPath,root):null;
-        const expCanMove=!!expMovable;
+        const expCanMove=MODE==='cross'&&!!expMovable;
         const expEl=document.createElement('span');
-        expEl.className=`term-${expCanMove?'grab':'lock'}`;
+        expEl.className=MODE!=='cross'?'term-plain':`term-${expCanMove?'grab':'lock'}`;
         expEl.style.cssText='display:inline-flex;align-items:center;';
         try{expEl.innerHTML=katex.renderToString(this.nodeStr(node.exp),{throwOnError:false,displayMode:false});}
         catch(e){expEl.textContent=this.nodeStr(node.exp);}
-        if(expCanMove){
+        if(MODE!=='cross'){
+          // no-op in balance mode
+        }else if(expCanMove){
           expEl.onmousedown=e=>{
             e.stopPropagation();
             // expMovable is the whole term (e.g. 3x²) not just the exponent
@@ -1473,8 +1589,234 @@ class Engine{
   }
 }
 
+// ══════════════════════════════════════
+//  BALANCE MODE
+// ══════════════════════════════════════
+let MODE='cross'; // 'cross' | 'balance'
+const bal={
+  op:null,        // selected op tile while building a chip: '+','-','*','/','^','sqrt'
+  pending:null,   // {op,operand,el,appliedL,appliedR} — the one chip currently in play
+  snapshot:null   // last fully-balanced {lhs,rhs}, restored if a chip is abandoned mid-way
+};
+
+function setMode(m){
+  if(m===MODE)return;
+  if(MODE==='balance'&&bal.pending&&!(bal.pending.appliedL&&bal.pending.appliedR)){
+    if(bal.snapshot){
+      engine.state.lhs=engine.restore(bal.snapshot.lhs);
+      engine.state.rhs=engine.restore(bal.snapshot.rhs);
+    }
+    bal.pending=null;
+    engine.showToast('Switched modes — the half-applied operation was reset.');
+  }
+  MODE=m;
+  document.querySelectorAll('.ms-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  document.getElementById('chipBuilder').classList.toggle('on',m==='balance');
+  document.getElementById('scaleZone').classList.toggle('on',m==='balance');
+  document.getElementById('trayTipsCross').style.display=m==='balance'?'none':'flex';
+  if(m==='balance'){
+    resetChipUI();
+    balSnapshot();
+    balAnnounce();
+  }else{
+    hideModal();
+    setScale('hidden');
+  }
+  engine.render();
+}
+document.querySelectorAll('.ms-btn').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+
+function doLoad(){
+  engine.load();
+  if(MODE==='balance'){
+    resetChipUI();
+    balSnapshot();
+    balAnnounce();
+  }
+}
+
+function balSnapshot(){
+  bal.snapshot={lhs:JSON.parse(JSON.stringify(engine.state.lhs)),rhs:JSON.parse(JSON.stringify(engine.state.rhs))};
+}
+
+function resetChipUI(){
+  bal.pending=null;bal.op=null;
+  document.getElementById('chipTray').innerHTML='';
+  document.getElementById('cbOperand').value='';
+  document.getElementById('cbOperand').disabled=false;
+  document.getElementById('cbPreview').textContent='Pick an operation…';
+  document.querySelectorAll('.cb-op').forEach(x=>x.classList.remove('active'));
+}
+
+// ── SCALE ──
+function setScale(state){ // 'hidden' | 'level' | 'tip-left' | 'tip-right'
+  const wrap=document.getElementById('scaleWrap');
+  const beam=document.getElementById('scaleBeam');
+  if(state==='hidden'){ wrap.classList.remove('show'); return; }
+  wrap.classList.add('show');
+  beam.classList.remove('tip-left','tip-right');
+  if(state==='tip-left'||state==='tip-right') beam.classList.add(state);
+}
+
+// ── MODAL ──
+function showModal(){
+  const m=document.getElementById('balanceModal');
+  m.classList.remove('hiding');
+  m.style.display='flex';
+}
+function hideModal(){
+  const m=document.getElementById('balanceModal');
+  if(m.style.display==='none')return;
+  m.classList.add('hiding');
+  setTimeout(()=>{ m.style.display='none'; m.classList.remove('hiding'); },180);
+}
+document.getElementById('balanceModalOk').onclick=()=>{
+  hideModal();
+  setTimeout(()=>setScale('hidden'),150);
+};
+
+function balAnnounce(){
+  setScale('level');
+  showModal();
+}
+
+// ── CHIP BUILDER ──
+document.querySelectorAll('.cb-op').forEach(b=>{
+  b.onclick=()=>{
+    bal.op=b.dataset.op;
+    document.querySelectorAll('.cb-op').forEach(x=>x.classList.toggle('active',x===b));
+    const operandEl=document.getElementById('cbOperand');
+    operandEl.disabled=(bal.op==='sqrt');
+    if(bal.op==='sqrt')operandEl.value='';
+    updateChipPreview();
+  };
+});
+document.querySelectorAll('.cb-key[data-d]').forEach(b=>{
+  b.onclick=()=>{
+    const inp=document.getElementById('cbOperand');
+    if(inp.disabled)return;
+    if(b.dataset.d==='del') inp.value=inp.value.slice(0,-1);
+    else if(b.dataset.d==='.'){ if(!inp.value.includes('.')) inp.value+='.'; }
+    else inp.value+=b.dataset.d;
+    updateChipPreview();
+  };
+});
+document.getElementById('cbOperand').addEventListener('input',updateChipPreview);
+
+function chipLabel(op,operand){
+  const sym={'+':'+','-':'−','*':'×','/':'÷','^':'^'};
+  if(op==='sqrt')return'√';
+  if(!operand)return(sym[op]||'')+'?';
+  return(sym[op]||'')+operand;
+}
+function updateChipPreview(){
+  const inp=document.getElementById('cbOperand');
+  const prev=document.getElementById('cbPreview');
+  if(bal.pending&&!(bal.pending.appliedL&&bal.pending.appliedR)){
+    prev.textContent='Drag the chip onto a side →';return;
+  }
+  if(!bal.op){ prev.textContent='Pick an operation…'; return; }
+  prev.textContent=chipLabel(bal.op,inp.value.trim());
+}
+
+document.getElementById('cbBuild').onclick=()=>{
+  if(bal.pending&&!(bal.pending.appliedL&&bal.pending.appliedR)){
+    engine.showToast('Finish applying the current chip to both sides first.');
+    return;
+  }
+  if(!bal.op){ engine.showToast('Pick an operation first.'); return; }
+  const operand=document.getElementById('cbOperand').value.trim();
+  if(bal.op!=='sqrt'){
+    if(!operand||isNaN(operand)){ engine.showToast('Enter a number for the chip.'); return; }
+    if(bal.op==='/'&&parseFloat(operand)===0){ engine.showToast("Can't divide by 0."); return; }
+    if(bal.op==='*'&&parseFloat(operand)===0){ engine.showToast("Multiplying by 0 loses information — pick another number."); return; }
+  }
+  buildChip(bal.op,operand);
+};
+
+function buildChip(op,operand){
+  const tray=document.getElementById('chipTray');
+  tray.innerHTML='';
+  const chip=document.createElement('div');
+  chip.className='op-chip';
+  chip.innerHTML=`<span class="chip-txt">${chipLabel(op,operand)}</span>`;
+  chip.onmousedown=e=>{e.preventDefault();dragChip(e,chip);};
+  tray.appendChild(chip);
+  bal.pending={op,operand,el:chip,appliedL:false,appliedR:false};
+  document.getElementById('cbPreview').textContent='Drag the chip onto a side →';
+}
+
+function dragChip(e,chipEl){
+  if(chipEl.classList.contains('applied-lhs')&&chipEl.classList.contains('applied-rhs'))return;
+  const label=chipEl.querySelector('.chip-txt').textContent;
+  const ghost=document.createElement('div');
+  ghost.className='chip-ghost';
+  ghost.textContent=label;
+  ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
+  document.body.appendChild(ghost);
+  const mm=ev=>{
+    ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';
+    ['LHS','RHS'].forEach(id=>{
+      const el=document.getElementById(id);
+      const r=el.getBoundingClientRect();
+      const over=ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom;
+      el.classList.toggle('drop-ready',over);
+    });
+  };
+  const mu=ev=>{
+    document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);
+    ghost.remove();
+    document.querySelectorAll('.side').forEach(s=>s.classList.remove('drop-ready'));
+    const target=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.side');
+    if(target) applyChipToSide(target.id==='LHS'?'lhs':'rhs');
+  };
+  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+}
+
+function applyChipToSide(sideKey){
+  const p=bal.pending;
+  if(!p)return;
+  const already=sideKey==='lhs'?p.appliedL:p.appliedR;
+  if(already){ engine.showToast('Already applied here — do the other side.'); return; }
+
+  const cur=engine.state[sideKey];
+  const opAtom=()=>new Atom(String(p.operand));
+  let wrapped;
+  if(p.op==='+') wrapped=new OpNode('add',[cur,opAtom()]);
+  else if(p.op==='-') wrapped=new OpNode('add',[cur,new Atom(String(-parseFloat(p.operand)))]);
+  else if(p.op==='*') wrapped=new OpNode('mult',[cur,opAtom()]);
+  else if(p.op==='/') wrapped=new DivNode(cur,opAtom());
+  else if(p.op==='^') wrapped=new PowNode(cur,opAtom());
+  else if(p.op==='sqrt') wrapped=new PowNode(cur,new DivNode(new Atom('1'),new Atom('2')));
+
+  engine.state[sideKey]=engine.sStructN(wrapped);
+
+  if(sideKey==='lhs')p.appliedL=true; else p.appliedR=true;
+  p.el.classList.toggle('applied-lhs',p.appliedL);
+  p.el.classList.toggle('applied-rhs',p.appliedR);
+
+  engine.render();
+
+  if(p.appliedL&&p.appliedR){
+    setScale('level');
+    balSnapshot();
+    engine.status('ok','Balanced again — nice work!');
+    setTimeout(()=>{
+      setScale('hidden');
+      resetChipUI();
+    },900);
+  }else{
+    const risesTouched=(p.op==='-'||p.op==='/'||p.op==='sqrt');
+    const dir=sideKey==='lhs'
+      ?(risesTouched?'tip-right':'tip-left')
+      :(risesTouched?'tip-left':'tip-right');
+    setScale(dir);
+    engine.status('','Unbalanced! Apply the same operation to the other side.');
+  }
+}
+
 const engine=new Engine();
-engine.load();
+doLoad();
 
 // ── CALCULATOR KEYBOARD ─────────────────────────────────────
 
