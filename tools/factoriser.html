@@ -53,20 +53,32 @@ body{
 /* ── BOARD ── */
 #board{
   flex:1;display:flex;flex-direction:column;align-items:center;
-  padding:1rem 2rem 1.5rem;gap:1rem;overflow:hidden;
+  padding:1rem 2rem 1.5rem;gap:.7rem;overflow:auto;
   position:relative;
 }
 
 /* ── EXPRESSION ── */
 #exprWrap{
   text-align:center;opacity:0;transform:translateY(-8px);
-  transition:opacity .45s,transform .45s;flex-shrink:0;
+  transition:opacity .45s,transform .45s,font-size .35s ease,margin .35s ease;flex-shrink:0;
 }
 #exprWrap.vis{opacity:1;transform:none;}
-#exprWrap .katex{font-size:3rem!important;}
+#exprWrap .katex{font-size:3rem!important;transition:font-size .35s ease;}
 .drag-hint{font-size:.95rem;color:var(--chalk3);margin-top:.25rem;
   animation:pulse 2s ease infinite;}
 @keyframes pulse{0%,100%{opacity:.35}50%{opacity:.85}}
+
+/* Done-and-shrunk expression: becomes a small running header once terms are placed */
+#exprWrap.compact{margin-bottom:-.2rem;}
+#exprWrap.compact .katex{font-size:1.5rem!important;}
+#exprWrap.compact .drag-hint{display:none;}
+
+/* Stage label — small uppercase caption above a section */
+.stage-label{
+  font-size:.72rem;color:var(--chalk3);letter-spacing:.08em;text-transform:uppercase;
+  text-align:center;opacity:0;transition:opacity .4s ease;margin-bottom:-.3rem;
+}
+.stage-label.vis{opacity:.75;}
 
 /* Term in expression — draggable, no box */
 .expr-term{
@@ -79,7 +91,12 @@ body{
 /* ── TERM SLOTS ROW ── */
 #slotsRow{
   display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;flex-shrink:0;
+  transition:opacity .3s ease,transform .3s ease;
 }
+/* Once both terms are placed, this row's job is done — the factor lines below
+   already restate each term as a label, so fade it out (JS then sets
+   display:none once the fade finishes, to reclaim the layout space). */
+#slotsRow.collapsed{opacity:0;transform:translateY(-8px);pointer-events:none;}
 .tslot{
   min-width:140px;min-height:64px;padding:.6rem 1.2rem;
   border:2px dashed rgba(255,255,255,.18);border-radius:8px;
@@ -94,29 +111,42 @@ body{
 /* ── FACTORS SECTION ── */
 #factSec{
   width:100%;max-width:760px;flex-shrink:0;
-  opacity:0;transition:opacity .4s;pointer-events:none;
+  opacity:0;transition:opacity .4s,transform .35s ease;pointer-events:none;
 }
 #factSec.vis{opacity:1;pointer-events:all;}
 .fact-line{
   display:flex;align-items:baseline;flex-wrap:wrap;gap:.4rem;
-  margin-bottom:.5rem;
+  margin-bottom:.5rem;transition:margin .3s ease;
 }
 .fact-line-term{font-size:1.5rem;flex-shrink:0;margin-right:.2rem;}
-.fact-line-term .katex{font-size:1.5rem!important;}
-.fact-colon{font-size:1.3rem;color:var(--chalk3);margin-right:.3rem;flex-shrink:0;}
+.fact-line-term .katex{font-size:1.5rem!important;transition:font-size .3s ease;}
+.fact-colon{font-size:1.3rem;color:var(--chalk3);margin-right:.3rem;flex-shrink:0;transition:font-size .3s ease;}
+
+/* Done-and-shrunk factor breakdown: once the bracket is being assembled below,
+   this becomes a compact reference line instead of a full-size active step. */
+#factSec.compact{opacity:.82;}
+#factSec.compact .fact-line{margin-bottom:.25rem;}
+#factSec.compact .fact-line-term{font-size:1.05rem;}
+#factSec.compact .fact-line-term .katex{font-size:1.05rem!important;}
+#factSec.compact .fact-colon{font-size:.95rem;}
+#factSec.compact .chip{min-width:26px;height:28px;padding:0 5px;font-size:.95rem;}
+#factSec.compact .chip .katex{font-size:.85rem!important;}
+#factSec.compact .chip.ci.interactive{cursor:default;}
+#factSec.compact .chip.ci.interactive:hover{animation:none;}
 
 /* Chip — inline, no background */
 .chip{
   position:relative;display:inline-flex;align-items:center;justify-content:center;
   min-width:38px;height:40px;padding:0 10px;font-size:1.35rem;color:var(--chalk);
-  transition:color .15s;flex-shrink:0;
+  transition:color .15s,min-width .3s ease,height .3s ease,padding .3s ease,font-size .3s ease;
+  flex-shrink:0;
 }
 .chip::before{
   content:'';position:absolute;inset:0;border-radius:4px;
   border:1.5px solid rgba(240,237,228,.18);
   transition:border-color .2s,border-radius .25s,box-shadow .2s;
 }
-.chip .katex{font-size:1.25rem!important;color:inherit!important;}
+.chip .katex{font-size:1.25rem!important;color:inherit!important;transition:font-size .3s ease;}
 
 /* Underlined chip */
 .chip.ul{color:var(--ul);}
@@ -355,6 +385,7 @@ body{
 
   <!-- 6. Factorised zone -->
   <div id="facZone">
+    <div class="stage-label" id="solvedLabel">✓ Factorised form</div>
     <div class="fz-row">
       <div class="fslot hcf" id="hcfSlot"><span style="color:rgba(255,255,255,.18);font-size:1rem;">HCF</span></div>
       <div class="bracket">(</div>
@@ -512,20 +543,25 @@ const F={
     const ew=document.getElementById('exprWrap');
     this.buildExprDraggable();
     ew.classList.add('vis');
+    ew.classList.remove('compact');
     // Reset slots
+    const sr=document.getElementById('slotsRow');
+    sr.classList.remove('collapsed');
+    sr.style.display='';
     [0,1].forEach(i=>{
       const sl=document.getElementById(`slot${i}`);
       sl.innerHTML='<span class="tslot-label">term '+(i+1)+'</span>';
       sl.classList.remove('filled');
     });
     // Hide sections
-    document.getElementById('factSec').classList.remove('vis');
+    document.getElementById('factSec').classList.remove('vis','compact');
     document.getElementById('factLines').innerHTML='';
     document.getElementById('chkFactsBtn').style.display='none';
     document.getElementById('toolRow').classList.remove('vis');
     document.getElementById('chkMarkBtn').style.display='none';
     document.getElementById('dragRow').classList.remove('vis');
     document.getElementById('facZone').classList.remove('vis');
+    document.getElementById('solvedLabel').classList.remove('vis');
     this.resetFacZone();
     document.getElementById('dragHint').style.display='';
     this.hideBigToast();
@@ -534,11 +570,15 @@ const F={
 
   reset(){
     this.terms=[];
-    document.getElementById('exprWrap').classList.remove('vis');
-    document.getElementById('factSec').classList.remove('vis');
+    document.getElementById('exprWrap').classList.remove('vis','compact');
+    const sr=document.getElementById('slotsRow');
+    sr.classList.remove('collapsed');
+    sr.style.display='';
+    document.getElementById('factSec').classList.remove('vis','compact');
     document.getElementById('toolRow').classList.remove('vis');
     document.getElementById('dragRow').classList.remove('vis');
     document.getElementById('facZone').classList.remove('vis');
+    document.getElementById('solvedLabel').classList.remove('vis');
     this.status('neutral','Load an expression to begin.');
   },
 
@@ -613,6 +653,12 @@ const F={
     this.slotTi[si]=ti;
     if(this.slotTi.every(x=>x!==-1)){
       document.getElementById('dragHint').style.display='none';
+      // Both terms placed — shrink the expression to a running header and
+      // fade out the now-redundant slots row so the factor list gets the stage.
+      document.getElementById('exprWrap').classList.add('compact');
+      const sr=document.getElementById('slotsRow');
+      sr.classList.add('collapsed');
+      setTimeout(()=>{ if(sr.classList.contains('collapsed')) sr.style.display='none'; },320);
       this.showFactors();
     }
   },
@@ -857,6 +903,9 @@ const F={
         this.hideBigToast();
         // Hide tool tray and check button
         document.getElementById('toolRow').classList.remove('vis');
+        // The marking step is done — shrink the factor breakdown to a compact
+        // reference line so the bracket assembly below becomes the main stage.
+        document.getElementById('factSec').classList.add('compact');
         // Make circled chips interactive (click to preview inner term)
         this.makeCirclesInteractive();
         // Show drag badges and fac zone
@@ -1003,13 +1052,15 @@ const F={
       if(ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom){
         rk(sl,latex);sl.classList.add('filled');this.bDone[si]=true;
         document.getElementById(`ciBadge${si}`).classList.add('used');
-        // Update bracket op sign
-        if(latex.trim().startsWith('-')){
-          document.getElementById('bOp').textContent='';
+        // Bracket operator reflects the sign of the SECOND slot only —
+        // the first slot's own sign is already baked into its rendered term.
+        if(si===1){
+          document.getElementById('bOp').textContent=latex.trim().startsWith('-')?'':'+';
         }
         if(this.bDone.every(Boolean)){
           this.status('ok','Factorised! ✓ Complete!');
           this.toast('🎉 Factorised correctly!','ok');
+          document.getElementById('solvedLabel').classList.add('vis');
         } else {
           this.status('ok','One more bracket term to go!');
         }
