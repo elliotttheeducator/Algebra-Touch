@@ -272,8 +272,8 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
       <a class="btn ghost" href="../index.html" title="Back to hub" style="text-decoration:none;display:inline-flex;align-items:center;">🏠 Hub</a>
       <div class="brand">⚖ Equation<em>Balancer</em></div>
       <div class="mode-switch" id="modeSwitch">
-        <button class="ms-btn active" data-mode="cross" type="button">Cross-drag</button>
-        <button class="ms-btn" data-mode="balance" type="button">Balance</button>
+        <button class="ms-btn" data-mode="cross" type="button">Cross-drag</button>
+        <button class="ms-btn active" data-mode="balance" type="button">Balance</button>
       </div>
     </div>
     <div class="wood-row2">
@@ -351,7 +351,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     <div id="rhsOuter" class="action-zone action-zone-outer"></div>
   </div>
   <div id="inlineToast"></div>
-  <div id="scaleZone">
+  <div id="scaleZone" class="on">
     <div class="scale-wrap" id="scaleWrap">
       <div class="scale-beam" id="scaleBeam">
         <div class="scale-pan left"><span class="scale-string"></span><span class="scale-string r"></span></div>
@@ -362,7 +362,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     </div>
   </div>
 </div>
-<div id="chipBuilder">
+<div id="chipBuilder" class="on">
   <div class="cb-row">
     <button class="cb-op" data-op="+" type="button">+</button>
     <button class="cb-op" data-op="-" type="button">−</button>
@@ -402,7 +402,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
   </div>
 </div>
 <div class="chalk-tray">
-  <div class="tray-tips" id="trayTipsCross">
+  <div class="tray-tips" id="trayTipsCross" style="display:none;">
     <span class="tip"><span class="tip-key">Hover</span> terms — green = drag, red = locked</span>
     <span class="tip-sep">·</span>
     <span class="tip"><span class="tip-key">Drag across =</span> to apply inverse</span>
@@ -1592,7 +1592,7 @@ class Engine{
 // ══════════════════════════════════════
 //  BALANCE MODE
 // ══════════════════════════════════════
-let MODE='cross'; // 'cross' | 'balance'
+let MODE='balance'; // 'cross' | 'balance'
 const bal={
   op:null,        // selected op tile while building a chip: '+','-','*','/','^','sqrt'
   pending:null,   // {op,operand,el,appliedL,appliedR} — the one chip currently in play
@@ -1618,9 +1618,11 @@ function setMode(m){
     resetChipUI();
     balSnapshot();
     balAnnounce();
+    engine.status('ok','Build an operation below, then drag it onto a side.');
   }else{
     hideModal();
     setScale('hidden');
+    engine.status('ok','Hover a term — green = draggable, red = locked.');
   }
   engine.render();
 }
@@ -1632,6 +1634,7 @@ function doLoad(){
     resetChipUI();
     balSnapshot();
     balAnnounce();
+    engine.status('ok','Build an operation below, then drag it onto a side.');
   }
 }
 
