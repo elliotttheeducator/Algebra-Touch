@@ -75,8 +75,14 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .chalkin{animation:chalkin .38s ease-out both;}
 .frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 4px;}
 .frac-line{width:100%;height:1.5px;background:currentColor;margin:3px 0;}
-.exp-sup{font-size:.55em;vertical-align:super;margin-left:1px;display:inline-flex;align-items:center;line-height:1;}
-.exp-frac{font-size:.48em;display:inline-flex;align-items:center;transform:translateY(-.9em);margin-left:1px;line-height:1;}
+/* The pow container is display:inline-flex with align-items:center (see .node),
+   which vertically centers the exponent against its base — fine when the base
+   is a single character, but it buries the exponent in the middle of a tall
+   base like a fraction. align-self overrides that per-item so the exponent
+   always sits at the top, like a real superscript, regardless of base height.
+   (vertical-align:super has no effect here since it's inert on flex items.) */
+.exp-sup{font-size:.62em;vertical-align:super;margin-left:5px;display:inline-flex;align-items:center;line-height:1;align-self:flex-start;}
+.exp-frac{font-size:.56em;display:inline-flex;align-items:center;transform:translateY(-.15em);margin-left:5px;line-height:1;align-self:flex-start;}
 .root-wrap{display:inline-flex;align-items:stretch;}
 .root-tick{width:16px;position:relative;margin-right:-1px;border-radius:4px 0 0 4px;padding:0 2px;flex-shrink:0;color:var(--chalk);transition:color .12s;}
 .root-tick.term-grab{cursor:grab;}.root-tick.term-grab:hover{color:var(--col-grab);}
