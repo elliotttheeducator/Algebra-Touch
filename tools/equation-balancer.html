@@ -899,11 +899,27 @@ class Engine{
   hasCancellable(n){
     if(!n)return false;
     if(n.type==='div'&&this.divAlreadyCancellable(n))return true;
+    // A factor sitting outside a fraction can cancel with that fraction's
+    // denominator too — e.g. 3·(x/3) — not just factors inside the fraction.
+    if(n.type==='mult'&&this.multDivSiblingCancellable(n))return true;
     if(n.children)for(const c of n.children)if(this.hasCancellable(c))return true;
     if(n.num&&this.hasCancellable(n.num))return true;
     if(n.den&&this.hasCancellable(n.den))return true;
     if(n.base&&this.hasCancellable(n.base))return true;
     return false;
+  }
+  // Shared factor-identity key used to match cancellable atoms/simple powers.
+  cancelKey(node){
+    if(node instanceof Atom)return node.val;
+    if(node.type==='pow'&&node.base instanceof Atom&&node.exp instanceof Atom)return node.base.val+'^'+node.exp.val;
+    return null;
+  }
+  multDivSiblingCancellable(multNode){
+    const divChild=multNode.children.find(c=>c.type==='div');
+    if(!divChild)return false;
+    const denKey=this.cancelKey(divChild.den);
+    if(!denKey)return false;
+    return multNode.children.some(c=>c!==divChild&&this.cancelKey(c)===denKey);
   }
   divAlreadyCancellable(divNode){
     if(!divNode||divNode.type!=='div')return false;
@@ -987,6 +1003,21 @@ class Engine{
         const nNode=build(nN),dNode=build(nD);
         if(dNode instanceof Atom&&dNode.val==='1')return this.sStructN(nNode);
         return this.sStructN(new DivNode(nNode,dNode));
+      }
+    }
+    // A factor sitting outside a fraction cancels with that fraction's
+    // denominator too — e.g. 3·(x/3) → x, not just factors already inside it.
+    if(n.type==='mult'){
+      const divChild=n.children.find(c=>c.type==='div');
+      if(divChild){
+        const denKey=this.cancelKey(divChild.den);
+        const matchIdx=denKey?n.children.findIndex(c=>c!==divChild&&this.cancelKey(c)===denKey):-1;
+        if(matchIdx>=0){
+          const rest=n.children.filter((c,i)=>i!==matchIdx&&c!==divChild);
+          const parts=[...rest,divChild.num];
+          const rebuilt=parts.length===1?parts[0]:new OpNode('mult',parts);
+          return this.cancelCommonFactors(this.sStructN(rebuilt));
+        }
       }
     }
     return n;
