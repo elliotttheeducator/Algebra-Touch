@@ -1341,9 +1341,18 @@ class Engine{
     }
     if(n.type==='div')return`${this.nodeToText(n.num)}÷${this.nodeToText(n.den)}`;
     if(n.type==='pow'){
-      const sup={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
-      const e=this.nodeToText(n.exp);
-      return`${this.nodeToText(n.base)}${e.split('').map(c=>sup[c]||c).join('')}`;
+      // A non-atomic base (another pow, a fraction, …) needs parens, or its
+      // own exponent runs straight into this one — e.g. base x² + exponent
+      // 1÷2 must read "(x²)^(1÷2)", not the ambiguous "x²¹÷²".
+      const baseTxt=n.base instanceof Atom?this.nodeToText(n.base):`(${this.nodeToText(n.base)})`;
+      if(n.exp instanceof Atom&&!isNaN(n.exp.val)){
+        const sup={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+        const e=this.nodeToText(n.exp);
+        return`${baseTxt}${e.split('').map(c=>sup[c]||c).join('')}`;
+      }
+      // Non-integer/complex exponent — explicit ^(...) reads far clearer
+      // than forcing mixed unicode superscript characters.
+      return`${baseTxt}^(${this.nodeToText(n.exp)})`;
     }
     return'?';
   }
@@ -1362,9 +1371,17 @@ class Engine{
       document.getElementById(id).innerHTML='';
     });
 
+    // In balance mode, a tile applied to only one side leaves the equation
+    // genuinely unbalanced on purpose (that's the whole teaching point) — but
+    // Simplify/Expand/Factor don't know that, and would happily "simplify"
+    // just the touched side, baking in an invalid step. Lock all three until
+    // the current tile has been applied to both sides.
+    const balanceLocked=typeof MODE!=='undefined'&&MODE==='balance'&&typeof bal!=='undefined'
+      &&(bal.appliedL||bal.appliedR)&&!(bal.appliedL&&bal.appliedR);
+
     // ── SIMPLIFY: place on whichever side has simplifiable content ──
-    const simplL=this.hasSimplifiable(this.state.lhs)||this.hasCancellable(this.state.lhs);
-    const simplR=this.hasSimplifiable(this.state.rhs)||this.hasCancellable(this.state.rhs);
+    const simplL=!balanceLocked&&(this.hasSimplifiable(this.state.lhs)||this.hasCancellable(this.state.lhs));
+    const simplR=!balanceLocked&&(this.hasSimplifiable(this.state.rhs)||this.hasCancellable(this.state.rhs));
     if(simplL||simplR){
       const b=document.createElement('button');b.className='action-btn';b.textContent='Simplify';
       b.onclick=e=>{e.stopPropagation();this.doSimplify();};
@@ -1373,8 +1390,8 @@ class Engine{
     }
 
     // ── FACTOR: pull common factor out of fractions ──
-    const factorL=this.hasFactorable(this.state.lhs);
-    const factorR=this.hasFactorable(this.state.rhs);
+    const factorL=!balanceLocked&&this.hasFactorable(this.state.lhs);
+    const factorR=!balanceLocked&&this.hasFactorable(this.state.rhs);
     if(factorL||factorR){
       const b=document.createElement('button');b.className='action-btn';b.textContent='Factor';
       b.onclick=e=>{e.stopPropagation();this.doFactor();};
@@ -1383,8 +1400,8 @@ class Engine{
     }
 
     // ── EXPAND: place on outer edge of whichever side has expandable content ──
-    const expL=this.hasExpandable(this.state.lhs);
-    const expR=this.hasExpandable(this.state.rhs);
+    const expL=!balanceLocked&&this.hasExpandable(this.state.lhs);
+    const expR=!balanceLocked&&this.hasExpandable(this.state.rhs);
     if(expL||expR){
       const b=document.createElement('button');b.className='action-btn';b.textContent='Expand';
       b.onclick=e=>{e.stopPropagation();this.doExpand();};
