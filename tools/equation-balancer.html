@@ -43,14 +43,42 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:3px;padding:1px 5px;font-family:monospace;font-size:.77em;color:var(--chalk2);}
 .blackboard{flex:1;display:flex;flex-direction:column;background:var(--board);position:relative;overflow:hidden;min-height:500px;}
 .blackboard::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(180deg,transparent 0,transparent 47px,rgba(255,255,255,0.02) 48px);}
+.board-row{flex:1;display:flex;align-items:stretch;overflow:hidden;}
+.board-main{flex:1;display:flex;flex-direction:column;position:relative;overflow:auto;min-width:0;}
 #inlineToast{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-family:'Caveat',cursive;font-size:1.3rem;color:rgba(240,237,228,0.8);pointer-events:none;white-space:nowrap;z-index:20;transition:opacity .35s;opacity:0;}
 #inlineToast.show{opacity:1;}
-.step-history{padding:1rem 3rem .5rem;display:flex;flex-direction:column;gap:.5rem;position:relative;z-index:1;pointer-events:none;}
-.step-row{display:flex;align-items:baseline;justify-content:center;gap:.6rem;font-family:'Caveat',cursive;color:rgba(240,237,228,.62);font-size:1.35rem;line-height:1;transition:opacity .3s ease;}
-.step-row.current{color:var(--chalk);font-size:1.7rem;font-weight:600;}
-.step-num{color:var(--chalk3);font-size:.75em;min-width:1.5em;text-align:right;flex-shrink:0;}
-.step-eq{color:rgba(240,237,228,.5);}
-.step-row.current .step-eq{color:var(--chalk3);}
+
+/* ── WORKBOOK (left-hand worked-solution panel) ── */
+.workbook{
+  width:400px;flex-shrink:0;background:#f4efe0;
+  border-right:5px solid var(--wood3);box-shadow:6px 0 26px rgba(0,0,0,.35);
+  padding:1.3rem 1.6rem 1.5rem;overflow-y:auto;position:relative;z-index:3;
+  background-image:repeating-linear-gradient(180deg,transparent 0,transparent 44px,rgba(50,90,170,.24) 45px);
+}
+.workbook-title{
+  font-family:'Caveat',cursive;font-weight:700;font-size:1.8rem;color:var(--wood2);
+  margin-bottom:.4rem;padding-bottom:.4rem;border-bottom:3px solid rgba(50,90,170,.35);
+}
+.step-history{display:flex;flex-direction:column;gap:.4rem;position:relative;z-index:1;}
+.step-row{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:.5rem;
+  font-family:'Caveat',cursive;color:rgba(22,33,62,.55);font-size:1.5rem;line-height:1.35;
+  transition:opacity .3s ease;
+}
+.step-row.current{color:#16213e;font-size:1.85rem;font-weight:700;}
+.step-num{color:rgba(22,33,62,.4);font-size:.68em;min-width:1.3em;flex-shrink:0;}
+.step-eq{color:rgba(22,33,62,.45);}
+.step-row.current .step-eq{color:rgba(22,33,62,.65);}
+/* Static equation renders (fractions, exponents, roots) reuse the live
+   equation's own DOM structure/classes — repoint their colors and sizes
+   from the chalkboard theme to the workbook's ink-on-paper theme. */
+.workbook .node,.workbook .paren,.workbook .root-tick{color:inherit;}
+.workbook .katex,.workbook .katex *{color:inherit!important;}
+.workbook .op-plus{color:inherit;font-size:1em;margin:0 .3em;}
+.workbook .frac{margin:0 .25em;}
+.workbook .exp-sup{font-size:.6em;margin-left:2px;}
+.workbook .exp-frac{font-size:.55em;margin-left:2px;}
+
 .eq-stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;padding:1rem 1rem;gap:0;}
 .side{display:flex;align-items:center;justify-content:center;min-width:170px;min-height:110px;padding:2.5rem 2rem;border-radius:14px;border:2px dashed transparent;transition:border-color .2s,background .2s,box-shadow .25s;position:relative;}
 .side.drop-ready{border-color:var(--drop-border);background:var(--drop-bg);box-shadow:0 0 70px var(--green-glow);}
@@ -366,27 +394,34 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 </div>
 
 <div class="blackboard">
-  <div class="step-history" id="stepHistory"></div>
-  <div class="eq-stage">
-    <div id="lhsOuter" class="action-zone action-zone-outer"></div>
-    <div id="LHS" class="side"></div>
-    <div id="lhsInner" class="action-zone"></div>
-    <div class="eq-center">
-      <div class="eq-sign" id="eqSignEl" onclick="engine.flip()" title="Flip sides">=</div>
+  <div class="board-row">
+    <div class="workbook" id="workbook">
+      <div class="workbook-title">Working Out</div>
+      <div class="step-history" id="stepHistory"></div>
     </div>
-    <div id="rhsInner" class="action-zone"></div>
-    <div id="RHS" class="side"></div>
-    <div id="rhsOuter" class="action-zone action-zone-outer"></div>
-  </div>
-  <div id="inlineToast"></div>
-  <div id="scaleZone" class="on">
-    <div class="scale-wrap" id="scaleWrap">
-      <div class="scale-beam" id="scaleBeam">
-        <div class="scale-pan left"><span class="scale-string"></span><span class="scale-string r"></span></div>
-        <div class="scale-pan right"><span class="scale-string"></span><span class="scale-string r"></span></div>
+    <div class="board-main">
+      <div class="eq-stage">
+        <div id="lhsOuter" class="action-zone action-zone-outer"></div>
+        <div id="LHS" class="side"></div>
+        <div id="lhsInner" class="action-zone"></div>
+        <div class="eq-center">
+          <div class="eq-sign" id="eqSignEl" onclick="engine.flip()" title="Flip sides">=</div>
+        </div>
+        <div id="rhsInner" class="action-zone"></div>
+        <div id="RHS" class="side"></div>
+        <div id="rhsOuter" class="action-zone action-zone-outer"></div>
       </div>
-      <div class="scale-post"></div>
-      <div class="scale-fulcrum"></div>
+      <div id="inlineToast"></div>
+      <div id="scaleZone" class="on">
+        <div class="scale-wrap" id="scaleWrap">
+          <div class="scale-beam" id="scaleBeam">
+            <div class="scale-pan left"><span class="scale-string"></span><span class="scale-string r"></span></div>
+            <div class="scale-pan right"><span class="scale-string"></span><span class="scale-string r"></span></div>
+          </div>
+          <div class="scale-post"></div>
+          <div class="scale-fulcrum"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1308,9 +1343,97 @@ class Engine{
       const isLast=i===this.steps.length-1;
       const row=document.createElement('div');
       row.className='step-row'+(isLast?' current':'');
-      row.innerHTML=`<span class="step-num">${i+1}.</span><span>${this.nodeToText(this.restore(s.lhs))}</span><span class="step-eq">=</span><span>${this.nodeToText(this.restore(s.rhs))}</span>`;
+      const num=document.createElement('span');num.className='step-num';num.textContent=`${i+1}.`;
+      const eq=document.createElement('span');eq.className='step-eq';eq.textContent='=';
+      row.appendChild(num);
+      row.appendChild(this.renderStatic(this.restore(s.lhs)));
+      row.appendChild(eq);
+      row.appendChild(this.renderStatic(this.restore(s.rhs)));
       h.appendChild(row);
     });
+  }
+
+  // ── STATIC (non-interactive) EQUATION RENDER ──
+  // Used for the workbook's frozen history lines: same visual structure as
+  // the live mkDom render (real fraction bars, exponents, root ticks) but
+  // with no ids/handlers, since these trees are one-off restored snapshots.
+  renderStatic(node,parentType=null){
+    if(!node)return document.createElement('span');
+    const np=(node.type==='add'&&(parentType==='mult'||parentType==='pow'))||
+             (node.type==='mult'&&parentType==='pow')||
+             (node.type==='div'&&parentType==='pow');
+    if(node instanceof Atom){
+      const el=document.createElement('span');
+      const displayVal=(node.val==='-1')?'-1':node.val;
+      try{el.innerHTML=katex.renderToString(displayVal,{throwOnError:false,displayMode:false});}
+      catch(e){el.textContent=displayVal;}
+      return el;
+    }
+    const el=document.createElement('div');
+    el.className='node';
+    if(np){const p=document.createElement('span');p.className='paren';p.textContent='(';el.appendChild(p);}
+    if(node.type==='add'){
+      node.children.forEach((c,i)=>{
+        if(i>0){
+          const isNeg=this.isNegTerm(c);
+          const isNegAtom=c instanceof Atom&&!isNaN(c.val)&&parseFloat(c.val)<0;
+          const isNegCoeffTerm=c.type==='mult'&&c.children[0] instanceof Atom&&
+                               !isNaN(c.children[0].val)&&parseFloat(c.children[0].val)<0;
+          if(!isNeg&&!isNegAtom&&!isNegCoeffTerm){
+            const op=document.createElement('span');op.className='op-plus';op.textContent='+';el.appendChild(op);
+          }
+        }
+        el.appendChild(this.renderStatic(c,'add'));
+      });
+    }else if(node.type==='mult'){
+      node.children.forEach((c,i)=>{
+        if(i===0&&this.isNegOne(c)){
+          const sign=document.createElement('span');sign.className='neg-sign';sign.textContent='−';
+          el.appendChild(sign);
+        }else{
+          if(i>0){
+            const prev=node.children[i-1];
+            const prevIsNegOne=this.isNegOne(prev);
+            const prevReal=prev instanceof Atom&&!isNaN(prev.val)&&!prevIsNegOne&&parseFloat(prev.val)>0;
+            const currIsNum=c instanceof Atom&&!isNaN(c.val);
+            if(prevReal&&currIsNum){
+              const op=document.createElement('span');op.className='op-plus';op.textContent='×';el.appendChild(op);
+            }
+          }
+          el.appendChild(this.renderStatic(c,'mult'));
+        }
+      });
+    }else if(node.type==='div'){
+      const frac=document.createElement('div');frac.className='frac';
+      frac.appendChild(this.renderStatic(node.num,'div'));
+      const line=document.createElement('div');line.className='frac-line';frac.appendChild(line);
+      frac.appendChild(this.renderStatic(node.den,'div'));
+      el.appendChild(frac);
+    }else if(node.type==='pow'){
+      const isRoot=node.exp.type==='div'&&
+        node.exp.num instanceof Atom&&node.exp.num.val==='1'&&
+        node.exp.den instanceof Atom&&node.exp.den.val==='2';
+      if(isRoot){
+        const wrapper=document.createElement('div');wrapper.className='root-wrap';
+        const tick=document.createElement('div');tick.className='root-tick';
+        tick.innerHTML=`<svg class="root-svg" viewBox="0 0 10 20" preserveAspectRatio="none"><path d="M0,12 L4,18 L10,0" vector-effect="non-scaling-stroke" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+        const content=document.createElement('div');content.className='root-content';
+        content.appendChild(this.renderStatic(node.base,'root'));
+        wrapper.appendChild(tick);wrapper.appendChild(content);
+        el.appendChild(wrapper);
+      }else{
+        el.appendChild(this.renderStatic(node.base,'pow'));
+        const sup=document.createElement('span');
+        sup.className=node.exp.type==='div'?'exp-frac':'exp-sup';
+        const expEl=document.createElement('span');
+        expEl.style.cssText='display:inline-flex;align-items:center;';
+        try{expEl.innerHTML=katex.renderToString(this.nodeStr(node.exp),{throwOnError:false,displayMode:false});}
+        catch(e){expEl.textContent=this.nodeStr(node.exp);}
+        sup.appendChild(expEl);el.appendChild(sup);
+      }
+    }
+    if(np){const p=document.createElement('span');p.className='paren';p.textContent=')';el.appendChild(p);}
+    return el;
   }
 
   // ── NODE → TEXT ──
