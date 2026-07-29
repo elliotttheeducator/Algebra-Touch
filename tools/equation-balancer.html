@@ -75,22 +75,27 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .step-history{display:flex;flex-direction:column;gap:.4rem;position:relative;z-index:1;overflow:hidden;}
 .step-row{
   display:flex;align-items:baseline;flex-wrap:nowrap;gap:.5rem;white-space:nowrap;
-  font-family:'Caveat',cursive;color:rgba(22,33,62,.55);font-size:1.5rem;line-height:1.35;
+  font-family:'Caveat',cursive;color:rgba(22,33,62,.55);font-size:1.15rem;line-height:1.35;
   transition:opacity .3s ease;transform-origin:left center;width:fit-content;
 }
-.step-row.current{color:#16213e;font-size:1.85rem;font-weight:700;}
+.step-row.current{color:#16213e;font-weight:700;}
 .step-num{color:rgba(22,33,62,.4);font-size:.68em;min-width:1.3em;flex-shrink:0;}
 .step-eq{color:rgba(22,33,62,.45);}
 .step-row.current .step-eq{color:rgba(22,33,62,.65);}
 /* Static equation renders (fractions, exponents, roots) reuse the live
    equation's own DOM structure/classes — repoint their colors and sizes
-   from the chalkboard theme to the workbook's ink-on-paper theme. */
+   from the chalkboard theme to the workbook's ink-on-paper theme, and
+   swap KaTeX's typeset math font for the handwriting font so it reads
+   like pencil-on-paper working, not a textbook printout. The base
+   .katex rule pins the live equation to a huge fixed rem size with
+   !important; override it back down to the row's own font-size here. */
 .workbook .node,.workbook .paren,.workbook .root-tick{color:inherit;}
-.workbook .katex,.workbook .katex *{color:inherit!important;}
+.workbook .katex,.workbook .katex *{color:inherit!important;font-family:'Caveat',cursive!important;}
+.workbook .katex{font-size:1em!important;}
 .workbook .op-plus{color:inherit;font-size:1em;margin:0 .3em;}
 .workbook .frac{margin:0 .25em;}
-.workbook .exp-sup{font-size:.6em;margin-left:2px;}
-.workbook .exp-frac{font-size:.55em;margin-left:2px;}
+.workbook .exp-sup{font-size:.62em;margin-left:2px;}
+.workbook .exp-frac{font-size:.56em;margin-left:2px;}
 
 .eq-stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;padding:1rem 1rem;gap:0;}
 .side{display:flex;align-items:center;justify-content:center;min-width:240px;min-height:160px;padding:3rem 2.5rem;border-radius:16px;border:2px dashed transparent;transition:border-color .2s,background .2s,box-shadow .25s;position:relative;}
