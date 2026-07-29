@@ -136,8 +136,8 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
    base like a fraction. align-self overrides that per-item so the exponent
    always sits at the top, like a real superscript, regardless of base height.
    (vertical-align:super has no effect here since it's inert on flex items.) */
-.exp-sup{font-size:.62em;vertical-align:super;margin-left:5px;display:inline-flex;align-items:center;line-height:1;align-self:flex-start;}
-.exp-frac{font-size:.56em;display:inline-flex;align-items:center;transform:translateY(-.15em);margin-left:5px;line-height:1;align-self:flex-start;}
+.exp-sup{font-size:3.1rem;vertical-align:super;margin-left:5px;display:inline-flex;align-items:center;line-height:1;align-self:flex-start;}
+.exp-frac{font-size:2.8rem;display:inline-flex;align-items:center;transform:translateY(-.15em);margin-left:5px;line-height:1;align-self:flex-start;}
 .root-wrap{display:inline-flex;align-items:stretch;}
 .root-tick{width:16px;position:relative;margin-right:-1px;border-radius:4px 0 0 4px;padding:0 2px;flex-shrink:0;color:var(--chalk);transition:color .12s;}
 .root-tick.term-grab{cursor:grab;}.root-tick.term-grab:hover{color:var(--col-grab);}
@@ -342,15 +342,6 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .cb-tile .side-ticks .tick.hit{color:var(--col-grab);}
 .chip-ghost{position:fixed;pointer-events:none;z-index:9999;display:inline-flex;align-items:center;justify-content:center;padding:14px 34px;border-radius:16px;border:3px solid var(--gold);color:var(--gold);background:rgba(20,28,20,.92);font-family:'Caveat',cursive;font-size:2.8rem;box-shadow:0 8px 26px rgba(0,0,0,.5);transform:translate(-50%,-50%);white-space:nowrap;}
 .chip-hint{font-size:.75rem;color:var(--chalk3);text-align:center;}
-.cb-quick{display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-top:.6rem;}
-.cb-quick-label{font-size:.7rem;color:var(--chalk3);letter-spacing:.05em;text-transform:uppercase;margin-right:.2rem;}
-.cb-quick-btn{
-  background:transparent;color:var(--gold);border:1.5px solid rgba(232,200,64,.35);
-  border-radius:16px;padding:5px 14px;font-family:'Courier New',monospace;font-size:.9rem;font-weight:700;
-  cursor:pointer;transition:background .12s,opacity .15s;
-}
-.cb-quick-btn:hover{background:rgba(232,200,64,.12);}
-.cb-quick-btn:disabled{opacity:.3;cursor:default;background:transparent;}
 
 </style>
 </head>
@@ -491,13 +482,6 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
       </div>
       <span id="cbTileLabel">?</span>
     </div>
-  </div>
-  <div class="cb-quick" id="cbQuick">
-    <span class="cb-quick-label">Quick:</span>
-    <button class="cb-quick-btn" data-op="+" data-val="10" type="button">+10</button>
-    <button class="cb-quick-btn" data-op="-" data-val="10" type="button">−10</button>
-    <button class="cb-quick-btn" data-op="*" data-val="10" type="button">×10</button>
-    <button class="cb-quick-btn" data-op="/" data-val="10" type="button">÷10</button>
   </div>
   <div class="chip-hint" id="chipHint">Pick an operation and a number, then drag the tile onto a side.</div>
 </div>
@@ -2058,7 +2042,6 @@ function refreshTile(){
     b.classList.toggle('active',b.dataset.op===bal.op);
   });
   document.querySelectorAll('.cb-key').forEach(b=>b.disabled=midFlight);
-  document.querySelectorAll('.cb-quick-btn').forEach(b=>b.disabled=midFlight);
   document.getElementById('cbOperand').disabled=midFlight||bal.op==='sqrt';
 
   if(midFlight){
@@ -2086,13 +2069,29 @@ function refreshTile(){
   }
 }
 
+// Selecting the op that's already active deselects it, so a keyboard tap
+// or a misclick can be undone without hunting for a separate clear button.
+function selectOp(op){
+  if(bal.appliedL||bal.appliedR)return;
+  bal.op=(bal.op===op)?null:op;
+  if(bal.op==='sqrt'){bal.operand='';document.getElementById('cbOperand').value='';}
+  refreshTile();
+}
 document.querySelectorAll('.cb-op').forEach(b=>{
-  b.onclick=()=>{
-    if(bal.appliedL||bal.appliedR)return;
-    bal.op=b.dataset.op;
-    if(bal.op==='sqrt'){bal.operand='';document.getElementById('cbOperand').value='';}
-    refreshTile();
-  };
+  b.onclick=()=>selectOp(b.dataset.op);
+});
+// Keyboard shortcuts for the operator tiles (+, -, *, /) — skipped while
+// typing in a text field so equation/operand entry isn't hijacked.
+const OP_KEYS={'+':'+','-':'-','*':'*','x':'*','×':'*','/':'/','÷':'/'};
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const tag=document.activeElement?.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA')return;
+  if(typeof MODE!=='undefined'&&MODE!=='balance')return;
+  const op=OP_KEYS[e.key];
+  if(!op)return;
+  e.preventDefault();
+  selectOp(op);
 });
 document.querySelectorAll('.cb-key[data-d]').forEach(b=>{
   b.onclick=()=>{
@@ -2110,20 +2109,6 @@ document.getElementById('cbOperand').addEventListener('input',()=>{
   bal.operand=document.getElementById('cbOperand').value.trim();
   refreshTile();
 });
-// Quick-entry shortcuts (+10/−10/×10/÷10, etc.) — one tap sets both the
-// operation and the number, skipping the tile-pad for a common jump.
-document.querySelectorAll('.cb-quick-btn').forEach(b=>{
-  b.onclick=()=>{
-    if(bal.appliedL||bal.appliedR)return;
-    bal.op=b.dataset.op;
-    bal.operand=b.dataset.val;
-    const inp=document.getElementById('cbOperand');
-    inp.disabled=false;
-    inp.value=b.dataset.val;
-    refreshTile();
-  };
-});
-
 document.getElementById('cbTile').addEventListener('mousedown',e=>{
   const tile=e.currentTarget;
   if(tile.classList.contains('empty')||tile.classList.contains('done'))return;
