@@ -45,6 +45,19 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .blackboard::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(180deg,transparent 0,transparent 47px,rgba(255,255,255,0.02) 48px);}
 .board-row{flex:1;display:flex;align-items:stretch;overflow:hidden;}
 .board-main{flex:1;display:flex;flex-direction:column;position:relative;overflow:auto;min-width:0;}
+/* Undo lives right on the equation it affects, not off in the header with
+   Load/Clear — it's undoing a step of the working, not resetting the tool. */
+.undo-float{
+  position:absolute;top:16px;right:20px;z-index:15;
+  background:rgba(0,0,0,.25);border:1.5px solid rgba(255,255,255,.25);
+  color:var(--chalk2);padding:7px 18px;border-radius:20px;
+  font-family:'Caveat',cursive;font-size:1.15rem;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:.3rem;
+  transition:background .15s,color .15s,border-color .15s,opacity .15s;
+  opacity:.85;
+}
+.undo-float:hover{background:rgba(255,255,255,.1);color:var(--chalk);border-color:rgba(255,255,255,.45);opacity:1;}
+.undo-float:disabled{opacity:.28;cursor:default;background:rgba(0,0,0,.25);border-color:rgba(255,255,255,.15);}
 #inlineToast{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);font-family:'Caveat',cursive;font-size:1.3rem;color:rgba(240,237,228,0.8);pointer-events:none;white-space:nowrap;z-index:20;transition:opacity .35s;opacity:0;}
 #inlineToast.show{opacity:1;}
 
@@ -59,11 +72,11 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
   font-family:'Caveat',cursive;font-weight:700;font-size:1.8rem;color:var(--wood2);
   margin-bottom:.4rem;padding-bottom:.4rem;border-bottom:3px solid rgba(50,90,170,.35);
 }
-.step-history{display:flex;flex-direction:column;gap:.4rem;position:relative;z-index:1;}
+.step-history{display:flex;flex-direction:column;gap:.4rem;position:relative;z-index:1;overflow:hidden;}
 .step-row{
-  display:flex;align-items:baseline;flex-wrap:wrap;gap:.5rem;
+  display:flex;align-items:baseline;flex-wrap:nowrap;gap:.5rem;white-space:nowrap;
   font-family:'Caveat',cursive;color:rgba(22,33,62,.55);font-size:1.5rem;line-height:1.35;
-  transition:opacity .3s ease;
+  transition:opacity .3s ease;transform-origin:left center;width:fit-content;
 }
 .step-row.current{color:#16213e;font-size:1.85rem;font-weight:700;}
 .step-num{color:rgba(22,33,62,.4);font-size:.68em;min-width:1.3em;flex-shrink:0;}
@@ -337,7 +350,6 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
         <input class="eq-in" id="eqInput" value="3x^2 + 5 = 32" spellcheck="false">
         <button class="btn" onclick="doLoad()">Load</button>
         <button class="btn ghost" onclick="calcClear()">Clear</button>
-        <button class="btn ghost" onclick="engine.undo()">Undo</button>
       </div>
       <button class="btn ghost kb-toggle-btn" id="kbToggle" onclick="toggleKeyboard()" title="Toggle calculator">⌨</button>
     </div>
@@ -400,6 +412,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
       <div class="step-history" id="stepHistory"></div>
     </div>
     <div class="board-main">
+      <button class="undo-float" id="undoFloat" onclick="engine.undo()" title="Undo the last step">↺ Undo</button>
       <div class="eq-stage">
         <div id="lhsOuter" class="action-zone action-zone-outer"></div>
         <div id="LHS" class="side"></div>
@@ -497,7 +510,7 @@ class PowNode extends Node{constructor(b,e){super('pow');this.base=b;this.exp=e;
 //  ENGINE
 // ══════════════════════════════════════
 class Engine{
-  constructor(){this.state={lhs:null,rhs:null};this.history=[];this.steps=[];this._toastTimer=null;}
+  constructor(){this.state={lhs:null,rhs:null};this.steps=[];this._toastTimer=null;}
 
   // ── LOAD ──
   load(){
@@ -507,19 +520,37 @@ class Engine{
     if(idx<0){this.status('err','No = sign found.');return;}
     this.state.lhs=this.parseExpr(proc.slice(0,idx));
     this.state.rhs=this.parseExpr(proc.slice(idx+1));
-    this.history=[];this.steps=[];
+    this.steps=[];
     document.getElementById('stepHistory').innerHTML='';
     this.state.lhs=this.sStructN(this.state.lhs);
     this.state.rhs=this.sStructN(this.state.rhs);
-    this.save();this.recordStep();this.render();
+    this.recordStep();this.render();
     this.status('ok','Hover a term — green = draggable, red = locked.');
   }
 
   // ── UNDO ──
+  // The workbook trail (this.steps) is the one source of truth for both the
+  // visible working-out and undo — there used to be a second, separate
+  // history[] stack for undo alone, but balance mode's tile-application path
+  // never pushed to it, so Undo would silently jump to the wrong equation
+  // while the workbook still showed the (now wrong) latest step.
   undo(){
-    if(this.history.length>1){
-      this.history.pop();if(this.steps.length)this.steps.pop();
-      const s=JSON.parse(this.history[this.history.length-1]);
+    const midFlight=typeof MODE!=='undefined'&&MODE==='balance'&&typeof bal!=='undefined'
+      &&(bal.appliedL||bal.appliedR)&&!(bal.appliedL&&bal.appliedR);
+    if(midFlight){
+      // Nothing was recorded for a tile that's only touched one side —
+      // cancel it and snap back to the last fully-balanced step instead
+      // of popping the trail.
+      const last=this.steps[this.steps.length-1];
+      if(last){this.state.lhs=this.restore(last.lhs);this.state.rhs=this.restore(last.rhs);}
+      resetChipUI();
+      setScale('hidden');
+      this.render();this.status('ok','Cancelled — back to the last balanced step.');
+      return;
+    }
+    if(this.steps.length>1){
+      this.steps.pop();
+      const s=this.steps[this.steps.length-1];
       this.state.lhs=this.restore(s.lhs);this.state.rhs=this.restore(s.rhs);
       this.rebuildHistory();this.render();this.status('ok','Undone.');
     }
@@ -1065,7 +1096,6 @@ class Engine{
     const animOut=el=>{el.classList.remove('chalkin','dissolving');void el.offsetWidth;el.classList.add('dissolving');};
     animOut(lEl);animOut(rEl);
     setTimeout(()=>{
-      this.save();
       this.state.lhs=this.applyFactoring(this.restore(this.state.lhs));
       this.state.rhs=this.applyFactoring(this.restore(this.state.rhs));
       this.state.lhs=this.sStructN(this.state.lhs);
@@ -1211,12 +1241,11 @@ class Engine{
 
   // ── APPLY MOVE ──
   move(node,targetName){
-    this.save();
     const srcKey=targetName==='LHS'?'rhs':'lhs';
     const dstKey=targetName==='LHS'?'lhs':'rhs';
     const root=this.state[srcKey];
     const path=this.findPath(root,node.id);
-    if(!path){this.history.pop();return;}
+    if(!path){return;}
     const parent=path.length>1?path[path.length-2]:null;
     const gp=path.length>2?path[path.length-3]:null;
 
@@ -1300,7 +1329,6 @@ class Engine{
     const animOut=el=>{el.classList.remove('chalkin','dissolving');void el.offsetWidth;el.classList.add('dissolving');};
     animOut(lEl);animOut(rEl);
     setTimeout(()=>{
-      this.save();
       this.state.lhs=this.cancelCommonFactors(this.state.lhs);
       this.state.rhs=this.cancelCommonFactors(this.state.rhs);
       this.state.lhs=this.sFullN(this.state.lhs);
@@ -1319,7 +1347,6 @@ class Engine{
     const animOut=el=>{el.classList.remove('chalkin','dissolving');void el.offsetWidth;el.classList.add('dissolving');};
     animOut(lEl);animOut(rEl);
     setTimeout(()=>{
-      this.save();
       this.state.lhs=this.expand(this.state.lhs);
       this.state.rhs=this.expand(this.state.rhs);
       this.state.lhs=this.sStructN(this.state.lhs);
@@ -1350,6 +1377,27 @@ class Engine{
       row.appendChild(eq);
       row.appendChild(this.renderStatic(this.restore(s.rhs)));
       h.appendChild(row);
+    });
+    this.fitHistoryRows();
+  }
+
+  // Every line always fits on one row inside the fixed-width workbook,
+  // however long the equation gets, by shrinking (never wrapping) rather
+  // than breaking a single equation across two lines mid-expression.
+  fitHistoryRows(){
+    const h=document.getElementById('stepHistory');
+    if(!h)return;
+    requestAnimationFrame(()=>{
+      const avail=h.clientWidth;
+      if(avail<=0)return;
+      h.querySelectorAll('.step-row').forEach(row=>{
+        row.style.transform='none';
+        const natural=row.scrollWidth;
+        if(natural>avail){
+          const scale=Math.max(0.45,avail/natural);
+          row.style.transform=`scale(${scale})`;
+        }
+      });
     });
   }
 
@@ -1488,6 +1536,16 @@ class Engine{
     const rDom=this.mkDom(this.state.rhs,'RHS',this.state.rhs);
     if(animate){lDom.classList.add('chalkin');rDom.classList.add('chalkin');}
     lC.appendChild(lDom);rC.appendChild(rDom);
+
+    // Undo is only meaningful once there's a prior step to fall back to, or
+    // a tile is half-applied and can be cancelled — keep it in sync here so
+    // it never offers to undo something that doesn't exist.
+    const undoBtn=document.getElementById('undoFloat');
+    if(undoBtn){
+      const midFlight=typeof MODE!=='undefined'&&MODE==='balance'&&typeof bal!=='undefined'
+        &&(bal.appliedL||bal.appliedR)&&!(bal.appliedL&&bal.appliedR);
+      undoBtn.disabled=!(this.steps.length>1||midFlight);
+    }
 
     // Clear all action zones
     ['lhsOuter','lhsInner','rhsInner','rhsOuter'].forEach(id=>{
@@ -1827,9 +1885,8 @@ class Engine{
     if(root.base)r=this.findPath(root.base,id,np)||this.findPath(root.exp,id,np);
     return r;
   }
-  save(){this.history.push(JSON.stringify(this.state));}
   flip(){
-    this.save();[this.state.lhs,this.state.rhs]=[this.state.rhs,this.state.lhs];
+    [this.state.lhs,this.state.rhs]=[this.state.rhs,this.state.lhs];
     this.recordStep();this.render();this.status('ok','Sides flipped.');
   }
   status(type,msg){
@@ -2066,13 +2123,19 @@ function applyChipToSide(sideKey){
   engine.state[sideKey]=engine.sStructN(wrapped);
   if(sideKey==='lhs')bal.appliedL=true; else bal.appliedR=true;
 
+  // Record the step (if this completes both sides) BEFORE render() — render()
+  // syncs the Undo button's enabled state from the current step count, so it
+  // needs the new step to already be in place when it runs.
+  if(bal.appliedL&&bal.appliedR){
+    balSnapshot();
+    engine.recordStep();
+  }
+
   engine.render();
   refreshTile();
 
   if(bal.appliedL&&bal.appliedR){
     setScale('level');
-    balSnapshot();
-    engine.recordStep();
     engine.status('ok','Balanced again — nice work!');
     setTimeout(()=>{
       setScale('hidden');
@@ -2090,6 +2153,7 @@ function applyChipToSide(sideKey){
 
 const engine=new Engine();
 doLoad();
+window.addEventListener('resize',()=>engine.fitHistoryRows());
 
 // ── CALCULATOR KEYBOARD ─────────────────────────────────────
 
