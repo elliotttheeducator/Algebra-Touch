@@ -92,6 +92,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .workbook .node,.workbook .paren,.workbook .root-tick{color:inherit;}
 .workbook .katex,.workbook .katex *{color:inherit!important;font-family:'Caveat',cursive!important;}
 .workbook .katex{font-size:1em!important;}
+.workbook .neg-sign{font-size:1em;margin-right:2px;}
 .workbook .op-plus{color:inherit;font-size:1em;margin:0 .3em;}
 .workbook .frac{margin:0 .25em;}
 .workbook .exp-sup{font-size:.62em;margin-left:2px;}
@@ -649,6 +650,61 @@ class Engine{
     if(n.type==='div')return this.termDegree(n.num); // treat by numerator
     return 0;
   }
+
+  // Split an additive term into its numeric coefficient and the rest of
+  // the term ("what it's a multiple of"), e.g. 3x → {coeff:3, rest:x},
+  // -x → {coeff:-1, rest:x}, 7 → {coeff:7, rest:null}, x → {coeff:1, rest:x}.
+  // restKey is a canonical (factor-order-independent) string used to group
+  // like terms — two terms combine only if their restKey matches exactly.
+  termSignature(n){
+    if(n instanceof Atom){
+      if(!isNaN(n.val))return{coeff:parseFloat(n.val),rest:null,restKey:''};
+      return{coeff:1,rest:n,restKey:n.val};
+    }
+    if(n.type==='mult'){
+      let coeff=1;const rest=[];
+      n.children.forEach(c=>{
+        if(c instanceof Atom&&!isNaN(c.val))coeff*=parseFloat(c.val);
+        else rest.push(c);
+      });
+      if(rest.length===0)return{coeff,rest:null,restKey:''};
+      const sorted=[...rest].sort((a,b)=>this.nodeToText(a).localeCompare(this.nodeToText(b)));
+      const restNode=sorted.length===1?sorted[0]:new OpNode('mult',sorted);
+      return{coeff,rest:restNode,restKey:sorted.map(p=>this.nodeToText(p)).join('*')};
+    }
+    return{coeff:1,rest:n,restKey:this.nodeToText(n)};
+  }
+
+  // ── COMBINE LIKE TERMS ── (3x − x → 2x, x + x → 2x, 3 + 5 → 8, …)
+  combineLikeTerms(n){
+    if(!n)return n;
+    if(n.children)n.children=n.children.map(c=>this.combineLikeTerms(c));
+    if(n.num){n.num=this.combineLikeTerms(n.num);n.den=this.combineLikeTerms(n.den);}
+    if(n.base){n.base=this.combineLikeTerms(n.base);n.exp=this.combineLikeTerms(n.exp);}
+    if(n.type==='add'&&n.children.length>1){
+      const order=[];const groups=new Map();
+      n.children.forEach(c=>{
+        const{coeff,rest,restKey}=this.termSignature(c);
+        if(!groups.has(restKey)){groups.set(restKey,{coeff:0,rest});order.push(restKey);}
+        groups.get(restKey).coeff+=coeff;
+      });
+      if(groups.size<n.children.length){
+        const newChildren=[];
+        order.forEach(k=>{
+          const{coeff,rest}=groups.get(k);
+          if(coeff===0)return;
+          if(rest===null){newChildren.push(new Atom(this.fmt(coeff)));return;}
+          if(coeff===1){newChildren.push(rest);return;}
+          if(coeff===-1){newChildren.push(new OpNode('mult',[new Atom('-1'),rest]));return;}
+          newChildren.push(new OpNode('mult',[new Atom(this.fmt(coeff)),rest]));
+        });
+        if(newChildren.length===0)return new Atom('0');
+        n.children=newChildren;
+        if(n.children.length===1)return n.children[0];
+      }
+    }
+    return n;
+  }
   sStructN(n){
     if(!n)return null;
     if(n.children)n.children=n.children.map(c=>this.sStructN(c));
@@ -872,7 +928,17 @@ class Engine{
     if(!n)return false;
     if(this.isFracExp(n,parentNode))return false;
     if(n.type==='mult'){const nums=n.children.filter(c=>c instanceof Atom&&!isNaN(c.val));if(nums.length>=2)return true;}
-    if(n.type==='add'){const nums=n.children.filter(c=>c instanceof Atom&&!isNaN(c.val));if(nums.length>=2)return true;}
+    if(n.type==='add'&&n.children.length>1){
+      // Like terms (3x + x, 3 + 5, 2xy − xy, …) share a restKey once you
+      // strip off each term's numeric coefficient — a repeat means Simplify
+      // has real work to do combining them.
+      const seen=new Set();
+      for(const c of n.children){
+        const{restKey}=this.termSignature(c);
+        if(seen.has(restKey))return true;
+        seen.add(restKey);
+      }
+    }
     if(n.type==='div'&&n.num instanceof Atom&&!isNaN(n.num.val)&&n.den instanceof Atom&&!isNaN(n.den.val)){
       const num=parseFloat(n.num.val),den=parseFloat(n.den.val);
       if(den!==0&&Number.isInteger(num/den))return true;
@@ -1346,6 +1412,10 @@ class Engine{
     setTimeout(()=>{
       this.state.lhs=this.cancelCommonFactors(this.state.lhs);
       this.state.rhs=this.cancelCommonFactors(this.state.rhs);
+      this.state.lhs=this.sFullN(this.state.lhs);
+      this.state.rhs=this.sFullN(this.state.rhs);
+      this.state.lhs=this.combineLikeTerms(this.state.lhs);
+      this.state.rhs=this.combineLikeTerms(this.state.rhs);
       this.state.lhs=this.sFullN(this.state.lhs);
       this.state.rhs=this.sFullN(this.state.rhs);
       this.state.lhs=this.sStructN(this.state.lhs);
