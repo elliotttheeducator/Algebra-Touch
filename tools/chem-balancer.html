@@ -48,14 +48,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .board-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:2;padding:2rem 1.5rem;overflow:auto;}
 
 .eq-stage{width:100%;display:flex;align-items:center;justify-content:center;}
-.eq-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.9rem 1.3rem;row-gap:1.4rem;max-width:1100px;}
-.species{display:flex;align-items:center;gap:.4rem;}
-.coeff-btn{width:2rem;height:2rem;border-radius:50%;border:1.5px solid rgba(232,200,64,.4);background:rgba(0,0,0,.25);color:var(--gold);font-size:1.05rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,transform .1s;flex-shrink:0;line-height:1;}
-.coeff-btn:hover:not(:disabled){background:rgba(232,200,64,.18);}
-.coeff-btn:active:not(:disabled){transform:scale(.9);}
-.coeff-btn:disabled{opacity:.25;cursor:default;}
-.coeff-num{font-family:'Caveat',cursive;font-weight:700;font-size:2.5rem;color:var(--gold);min-width:1.3rem;text-align:center;line-height:1;transition:color .2s;}
-.coeff-num.one{color:var(--chalk3);opacity:.6;}
+.eq-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:.9rem 1.3rem;row-gap:1.4rem;max-width:1100px;}
+.species{display:inline-flex;align-items:baseline;gap:0;}
+/* The coefficient is a blank to fill in, not a stepper — mirrors the
+   "_Fe + _O2 -> _Fe2O3" fill-in-the-blank convention students already
+   know from a textbook, rather than inventing new UI to learn. */
+.coeff-input{
+  border:none;border-bottom:2.5px solid rgba(240,237,228,.4);background:transparent;
+  color:var(--chalk);font-family:Georgia,'Times New Roman',serif;
+  font-size:clamp(1.7rem,3.6vw,3rem);line-height:1;
+  width:1.15em;text-align:center;outline:none;padding:0 .05em;margin-right:.15em;
+  transition:border-color .15s;
+}
+.coeff-input::placeholder{color:rgba(240,237,228,.3);}
+.coeff-input:focus{border-color:var(--gold);}
+.coeff-input.filled{border-bottom-style:solid;border-color:rgba(240,237,228,.65);}
 .formula{font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.7rem,3.6vw,3rem);color:var(--chalk);letter-spacing:.01em;line-height:1;}
 .formula sub{font-size:.55em;position:relative;top:.4em;}
 .chem-plus{font-family:'Caveat',cursive;font-size:2.2rem;color:var(--chalk2);line-height:1;}
@@ -65,16 +72,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
 /* Atom counter — hidden by default so a student works out the tally
    themselves first, then reveals it to self-check which element(s)
-   are still off and by how much. */
-.atom-counter{display:none;margin-top:1.1rem;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:.6rem 1.4rem;width:100%;max-width:360px;}
-.counter-row{display:flex;align-items:center;justify-content:space-between;padding:.32rem 0;border-bottom:1px solid rgba(255,255,255,.07);font-family:'Caveat',cursive;font-size:1.2rem;}
+   are still off and by how much. Numbers roll like an odometer/fruit
+   machine reel on change instead of snapping, via a fixed digit strip
+   per column translated to the target digit. */
+.atom-counter{display:none;margin-top:1.4rem;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:1.1rem 1.9rem;width:100%;max-width:480px;}
+.counter-row{display:flex;align-items:center;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.07);}
 .counter-row:last-child{border-bottom:none;}
-.counter-row.counter-header{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--chalk3);font-family:'Inter',sans-serif;}
-.counter-el{color:var(--chalk);font-weight:700;min-width:2.6rem;}
-.counter-vals{display:flex;gap:1.3rem;}
-.counter-val{min-width:1.8rem;text-align:center;color:var(--chalk2);}
-.counter-row.match .counter-val{color:#90e8a8;}
-.counter-row.mismatch .counter-val{color:#f09090;}
+.counter-row.counter-header{padding-bottom:.5rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--chalk3);font-family:'Inter',sans-serif;}
+.counter-el{font-family:'Caveat',cursive;color:var(--chalk);font-weight:700;font-size:1.7rem;min-width:3rem;}
+.counter-vals{display:flex;gap:1.8rem;align-items:center;}
+.counter-val-label{min-width:2.6rem;text-align:center;display:inline-block;}
+.counter-row:not(.counter-header) .counter-vals{color:var(--chalk2);transition:color .3s;}
+.counter-row.match .counter-vals{color:#90e8a8;}
+.counter-row.mismatch .counter-vals{color:#f09090;}
+.odometer{display:inline-flex;min-width:2.6rem;justify-content:center;font-family:Georgia,'Times New Roman',serif;font-size:2.1rem;}
+.odo-digit{display:inline-block;overflow:hidden;position:relative;height:1em;width:.62em;vertical-align:top;}
+.odo-strip{display:block;transition:transform .5s cubic-bezier(.22,1,.36,1);}
+.odo-strip span{display:block;height:1em;line-height:1em;text-align:center;}
 
 /* ── MODAL (reused pattern) ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:2000;display:flex;align-items:center;justify-content:center;animation:mfade .2s ease both;}
@@ -141,7 +155,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 </div>
 
 <div class="chalk-tray">
-  <div class="tray-tips">Use the − / + next to each formula to change its coefficient until every element matches on both sides.</div>
+  <div class="tray-tips">Type a whole number in each blank until every element matches on both sides.</div>
   <div class="tray-status">
     <div class="s-dot" id="sDot"></div>
     <span class="s-txt" id="sTxt">Load an equation to begin.</span>
@@ -149,8 +163,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 </div>
 
 <script>
-const MAX_COEFF=12;
-
 // ── FORMULA PARSER ──
 // Reads a chemical formula (with optional (groups) and subscripts) into
 // an element→count map for one molecule, e.g. "Ca(OH)2" → {Ca:1,O:2,H:2}.
@@ -193,8 +205,11 @@ function parseEquation(str){
     const tokens=side.split('+').map(s=>s.trim()).filter(Boolean);
     if(!tokens.length)throw new Error('Each side needs at least one substance.');
     return tokens.map(token=>{
+      // No default coefficient — every blank starts empty, like a real
+      // fill-in-the-blank worksheet, unless the typed equation already
+      // spelled one out (e.g. pasting in "2H2 + O2 -> 2H2O" to check it).
       const m=token.match(/^(\d+)\s*(.+)$/);
-      let coeff=1,formula=token;
+      let coeff=null,formula=token;
       if(m){coeff=parseInt(m[1],10);formula=m[2];}
       const counts=parseFormula(formula);
       if(Object.keys(counts).length===0)throw new Error(`Couldn't read the formula "${formula}".`);
@@ -225,24 +240,57 @@ function isBalanced(eq){
   if(!els.length)return false;
   return els.every(el=>(L[el]||0)===(R[el]||0));
 }
+// Every blank must hold a whole number ≥1 before "balanced" means
+// anything — otherwise an all-empty equation reads as trivially
+// balanced (0 atoms on both sides), which is nonsense.
+function allCoeffsFilled(eq){
+  return[...eq.reactants,...eq.products].every(sp=>Number.isInteger(sp.coeff)&&sp.coeff>=1);
+}
 
 // ── STATE ──
 let currentEq=null;
 let wasBalanced=false;
 let countersVisible=false;
+let counterCells={}; // element symbol -> {row, leftOdo, rightOdo}
+
+// ── ODOMETER (rolling digit reels for the atom counter) ──
+function buildDigitReel(){
+  const digit=document.createElement('span');digit.className='odo-digit';
+  const strip=document.createElement('span');strip.className='odo-strip';
+  for(let d=0;d<10;d++){const s=document.createElement('span');s.textContent=String(d);strip.appendChild(s);}
+  digit.appendChild(strip);
+  digit._strip=strip;
+  return digit;
+}
+function renderOdometerValue(container,value){
+  const str=String(Math.max(0,value));
+  while(container.children.length<str.length)container.insertBefore(buildDigitReel(),container.firstChild);
+  while(container.children.length>str.length)container.removeChild(container.firstChild);
+  const digits=str.split('').map(Number);
+  Array.from(container.children).forEach((reel,i)=>{reel._strip.style.transform=`translateY(-${digits[i]}em)`;});
+}
 
 // ── RENDER ──
+// The equation stage is only rebuilt on structural change (load/reset) —
+// coefficient input elements stay put across keystrokes, or every
+// keystroke would blow away the input the student is actively typing in.
 function renderSpecies(sp){
-  const wrap=document.createElement('div');wrap.className='species';
-  const minus=document.createElement('button');minus.type='button';minus.className='coeff-btn';minus.textContent='−';
-  minus.disabled=sp.coeff<=1;
-  minus.onclick=()=>{if(sp.coeff>1){sp.coeff--;onCoeffChange();}};
-  const num=document.createElement('span');num.className='coeff-num'+(sp.coeff===1?' one':'');num.textContent=sp.coeff;
-  const plus=document.createElement('button');plus.type='button';plus.className='coeff-btn';plus.textContent='+';
-  plus.disabled=sp.coeff>=MAX_COEFF;
-  plus.onclick=()=>{if(sp.coeff<MAX_COEFF){sp.coeff++;onCoeffChange();}};
+  const wrap=document.createElement('span');wrap.className='species';
+  const input=document.createElement('input');
+  input.type='text';input.inputMode='numeric';input.autocomplete='off';
+  input.className='coeff-input'+(sp.coeff!==null?' filled':'');
+  input.placeholder='_';input.maxLength=2;
+  input.value=sp.coeff===null?'':String(sp.coeff);
+  input.addEventListener('input',()=>{
+    const digits=input.value.replace(/[^0-9]/g,'');
+    if(digits!==input.value)input.value=digits;
+    const n=digits===''?null:parseInt(digits,10);
+    sp.coeff=(n&&n>=1)?n:null;
+    input.classList.toggle('filled',sp.coeff!==null);
+    onCoeffChange();
+  });
   const formula=document.createElement('span');formula.className='formula';formula.innerHTML=formatFormulaHTML(sp.formula);
-  wrap.appendChild(minus);wrap.appendChild(num);wrap.appendChild(plus);wrap.appendChild(formula);
+  wrap.appendChild(input);wrap.appendChild(formula);
   return wrap;
 }
 function renderEquation(){
@@ -261,42 +309,65 @@ function renderEquation(){
   });
   stage.appendChild(row);
 }
-function renderCounters(){
+// Rebuilds the counter table skeleton — call on structural change only
+// (new equation), since it discards the odometer reels' current digit
+// positions and their rolling transition would have nothing to animate
+// from.
+function buildCounterSkeleton(){
   const box=document.getElementById('atomCounter');
   box.innerHTML='';
+  counterCells={};
   if(!currentEq)return;
-  const{L,R,els}=elementUnion(currentEq);
+  const{els}=elementUnion(currentEq);
   const header=document.createElement('div');header.className='counter-row counter-header';
-  header.innerHTML='<span class="counter-el">Element</span><span class="counter-vals"><span class="counter-val">Left</span><span class="counter-val">Right</span></span>';
+  header.innerHTML='<span class="counter-el">Element</span><span class="counter-vals"><span class="counter-val-label">Left</span><span class="counter-val-label">Right</span></span>';
   box.appendChild(header);
   els.forEach(el=>{
-    const l=L[el]||0,r=R[el]||0;
-    const row=document.createElement('div');
-    row.className='counter-row '+(l===r?'match':'mismatch');
-    row.innerHTML=`<span class="counter-el">${el}</span><span class="counter-vals"><span class="counter-val">${l}</span><span class="counter-val">${r}</span></span>`;
+    const row=document.createElement('div');row.className='counter-row';
+    const elLabel=document.createElement('span');elLabel.className='counter-el';elLabel.textContent=el;
+    const vals=document.createElement('span');vals.className='counter-vals';
+    const leftOdo=document.createElement('span');leftOdo.className='odometer';
+    const rightOdo=document.createElement('span');rightOdo.className='odometer';
+    vals.appendChild(leftOdo);vals.appendChild(rightOdo);
+    row.appendChild(elLabel);row.appendChild(vals);
     box.appendChild(row);
+    counterCells[el]={row,leftOdo,rightOdo};
+  });
+  updateCounterValues();
+}
+// Updates the existing odometer reels in place (no rebuild), so the CSS
+// transition on each digit's transform actually animates between the old
+// and new value — the "fruit machine" roll.
+function updateCounterValues(){
+  if(!currentEq)return;
+  const{L,R,els}=elementUnion(currentEq);
+  els.forEach(el=>{
+    const cell=counterCells[el];
+    if(!cell)return;
+    const l=L[el]||0,r=R[el]||0;
+    renderOdometerValue(cell.leftOdo,l);
+    renderOdometerValue(cell.rightOdo,r);
+    cell.row.classList.toggle('match',l===r);
+    cell.row.classList.toggle('mismatch',l!==r);
   });
 }
-function updateStatus(bal){
+function setStatus(kind,msg){
   const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt');
-  dot.className='s-dot'+(bal?' ok':'');
-  txt.className='s-txt'+(bal?' ok':'');
-  txt.textContent=bal?'Balanced — every element matches on both sides!':'Not balanced yet — adjust the coefficients.';
-}
-function updateStatusError(msg){
-  const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt');
-  dot.className='s-dot err';
-  txt.className='s-txt err';
+  dot.className='s-dot'+(kind==='ok'?' ok':kind==='err'?' err':'');
+  txt.className='s-txt'+(kind==='ok'?' ok':kind==='err'?' err':'');
   txt.textContent=msg;
 }
 function onCoeffChange(){
-  renderEquation();
-  renderCounters();
-  const bal=isBalanced(currentEq);
-  updateStatus(bal);
-  if(bal&&!wasBalanced){
-    document.getElementById('balancedModal').style.display='flex';
+  updateCounterValues();
+  if(!currentEq)return;
+  if(!allCoeffsFilled(currentEq)){
+    setStatus('neutral','Fill in every blank with a whole number.');
+    wasBalanced=false;
+    return;
   }
+  const bal=isBalanced(currentEq);
+  setStatus(bal?'ok':'neutral',bal?'Balanced — every element matches on both sides!':'Not balanced yet — check your coefficients.');
+  if(bal&&!wasBalanced)document.getElementById('balancedModal').style.display='flex';
   wasBalanced=bal;
 }
 
@@ -305,12 +376,12 @@ function doLoad(){
   const raw=document.getElementById('eqInput').value.trim();
   let parsed;
   try{parsed=parseEquation(raw);}
-  catch(e){updateStatusError(e.message);return;}
+  catch(e){setStatus('err',e.message);return;}
   currentEq=parsed;
   wasBalanced=false;
   renderEquation();
-  renderCounters();
-  updateStatus(isBalanced(currentEq));
+  buildCounterSkeleton();
+  setStatus('neutral',allCoeffsFilled(currentEq)?(isBalanced(currentEq)?'Balanced — every element matches on both sides!':'Not balanced yet — check your coefficients.'):'Fill in every blank with a whole number.');
 }
 document.getElementById('loadBtn').onclick=doLoad;
 document.getElementById('eqInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLoad();});
@@ -320,10 +391,12 @@ document.getElementById('clearBtn').onclick=()=>{
 };
 document.getElementById('resetBtn').onclick=()=>{
   if(!currentEq)return;
-  currentEq.reactants.forEach(sp=>sp.coeff=1);
-  currentEq.products.forEach(sp=>sp.coeff=1);
+  currentEq.reactants.forEach(sp=>sp.coeff=null);
+  currentEq.products.forEach(sp=>sp.coeff=null);
   wasBalanced=false;
-  onCoeffChange();
+  renderEquation();
+  buildCounterSkeleton();
+  setStatus('neutral','Fill in every blank with a whole number.');
 };
 document.querySelectorAll('.preset-btn').forEach(b=>{
   b.onclick=()=>{
