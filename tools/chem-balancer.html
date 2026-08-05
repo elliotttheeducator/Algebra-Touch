@@ -90,6 +90,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .odo-strip{display:block;transition:transform .5s cubic-bezier(.22,1,.36,1);}
 .odo-strip span{display:block;height:1em;line-height:1em;text-align:center;}
 
+/* How-to-balance tips — a fixed algorithm, not equation-specific advice,
+   so it's safe to show before a student has typed anything in. Hidden by
+   default alongside the atom counter so the board stays uncluttered. */
+.tips-panel{display:none;margin-top:1.4rem;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:1.2rem 1.7rem;width:100%;max-width:560px;}
+.tips-title{font-family:'Caveat',cursive;font-weight:700;font-size:1.35rem;color:var(--cy);margin-bottom:.6rem;}
+.tips-list{list-style:none;counter-reset:tip;display:flex;flex-direction:column;gap:.65rem;}
+.tips-list li{counter-increment:tip;display:flex;gap:.7rem;font-size:.86rem;color:var(--chalk2);line-height:1.5;}
+.tips-list li::before{
+  content:counter(tip);flex-shrink:0;width:1.5rem;height:1.5rem;border-radius:50%;
+  background:rgba(232,200,64,.15);border:1.5px solid rgba(232,200,64,.4);color:var(--gold);
+  font-family:'Caveat',cursive;font-weight:700;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;margin-top:.05rem;
+}
+.tips-list li strong{color:var(--chalk);font-weight:700;}
+.tips-list li.tips-aside{color:var(--chalk3);font-style:italic;}
+.tips-list li.tips-aside::before{content:'💡';background:transparent;border-color:transparent;font-size:1rem;}
+
 /* ── MODAL (reused pattern) ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:2000;display:flex;align-items:center;justify-content:center;animation:mfade .2s ease both;}
 @keyframes mfade{from{opacity:0}to{opacity:1}}
@@ -138,8 +155,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <div class="board-main">
     <div class="eq-stage" id="eqStage"></div>
     <div class="controls-row">
+      <button class="btn ghost small" id="tipsToggle" type="button">💡 How to balance</button>
       <button class="btn ghost small" id="counterToggle" type="button">👁 Show atom counts</button>
       <button class="btn ghost small" id="resetBtn" type="button">↺ Reset coefficients</button>
+    </div>
+    <div class="tips-panel" id="tipsPanel">
+      <div class="tips-title">A method that always works</div>
+      <ol class="tips-list">
+        <li><span><strong>Find a lone element</strong> — one that appears in exactly one formula on each side. Its coefficients only depend on each other, so it's the safest place to start.</span></li>
+        <li><span><strong>Balance it</strong>, then move to the next-simplest element still unmatched — usually a metal, or whichever element shows up in the fewest formulas.</span></li>
+        <li><span><strong>Save oxygen and hydrogen for last.</strong> They tend to turn up in the most formulas (water, acids, oxides), so they only settle once everything else is locked in.</span></li>
+        <li><span><strong>Land on a fraction (like 7⁄2)?</strong> Don't round it — double every coefficient in the whole equation instead, so it clears into whole numbers.</span></li>
+        <li><span><strong>Recheck the whole equation</strong>, not just the element you touched — fixing one can un-balance one you already fixed.</span></li>
+        <li class="tips-aside"><span>The atom counter is your source of truth — trust the numbers over the "feel" of the equation.</span></li>
+      </ol>
     </div>
     <div class="atom-counter" id="atomCounter"></div>
   </div>
@@ -409,6 +438,13 @@ document.getElementById('counterToggle').onclick=()=>{
   const box=document.getElementById('atomCounter');
   box.style.display=countersVisible?'block':'none';
   document.getElementById('counterToggle').textContent=countersVisible?'🙈 Hide atom counts':'👁 Show atom counts';
+};
+let tipsVisible=false;
+document.getElementById('tipsToggle').onclick=()=>{
+  tipsVisible=!tipsVisible;
+  const panel=document.getElementById('tipsPanel');
+  panel.style.display=tipsVisible?'block':'none';
+  document.getElementById('tipsToggle').textContent=tipsVisible?'💡 Hide tips':'💡 How to balance';
 };
 document.getElementById('balancedModalOk').onclick=()=>{
   document.getElementById('balancedModal').style.display='none';
