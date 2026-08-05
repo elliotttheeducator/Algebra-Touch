@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Reaction Balancer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --board:#2c5e3f;--board2:#245034;--board3:#1b3d27;
+  --chalk:#f0ede4;--chalk2:#c8c4b8;--chalk3:#8a8780;
+  --wood:#6b3d1e;--wood2:#8b5e2a;--wood3:#3d2010;
+  --gold:#e8c840;--cy:#f0d870;
+}
+html,body{height:100%}
+body{background:var(--board3);color:var(--chalk);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;user-select:none;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.45;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");}
+
+/* ── HEADER ── */
+.wood-frame{background:linear-gradient(180deg,var(--wood2) 0%,var(--wood) 50%,var(--wood3) 100%);padding:0 2rem;border-bottom:5px solid var(--wood3);box-shadow:0 4px 24px rgba(0,0,0,0.55);position:relative;z-index:10;}
+.wood-inner{display:flex;align-items:center;gap:1rem;padding:.9rem 0;flex-wrap:wrap;}
+.brand{font-family:'Caveat',cursive;font-size:1.7rem;font-weight:700;color:var(--chalk);text-shadow:1px 1px 4px rgba(0,0,0,0.5);white-space:nowrap;}
+.brand em{color:var(--gold);font-style:normal;}
+.input-row{display:flex;gap:8px;flex:1;max-width:520px;}
+.eq-in{flex:1;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-bottom:2px solid rgba(255,255,255,0.28);color:var(--chalk);padding:8px 14px;border-radius:5px;font-family:'Caveat',cursive;font-size:1.25rem;outline:none;transition:border-color .2s;}
+.eq-in:focus{border-color:var(--gold);}
+.btn{background:var(--gold);color:var(--wood3);border:none;padding:8px 22px;border-radius:5px;font-weight:700;font-size:.82rem;cursor:pointer;transition:filter .15s,transform .1s;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;}
+.btn:hover{filter:brightness(1.12);transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn.ghost{background:transparent;color:var(--chalk2);border:1px solid rgba(255,255,255,0.18);}
+.btn.ghost:hover{background:rgba(255,255,255,0.07);color:var(--chalk);}
+.btn.small{padding:6px 14px;font-size:.72rem;}
+
+/* Quick-load presets — the "easy molecule loader": one tap fills the
+   equation input with a known, curriculum-relevant reaction so a student
+   never has to hand-type a chemical formula just to get started. */
+.presets-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:0 0 .75rem;}
+.presets-label{font-size:.7rem;color:rgba(240,237,228,.55);letter-spacing:.05em;text-transform:uppercase;margin-right:.1rem;}
+.preset-btn{background:rgba(0,0,0,.22);color:var(--cy);border:1.5px solid rgba(232,200,64,.3);border-radius:16px;padding:5px 14px;font-family:'Caveat',cursive;font-size:1.05rem;font-weight:700;cursor:pointer;transition:background .12s,transform .1s;white-space:nowrap;}
+.preset-btn:hover{background:rgba(232,200,64,.15);transform:translateY(-1px);}
+.preset-btn:active{transform:translateY(0);}
+
+/* ── BOARD ── */
+.blackboard{flex:1;display:flex;flex-direction:column;background:var(--board);position:relative;overflow:hidden;min-height:500px;}
+.blackboard::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(180deg,transparent 0,transparent 47px,rgba(255,255,255,0.02) 48px);}
+.board-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;z-index:2;padding:2rem 1.5rem;overflow:auto;}
+
+.eq-stage{width:100%;display:flex;align-items:center;justify-content:center;}
+.eq-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.9rem 1.3rem;row-gap:1.4rem;max-width:1100px;}
+.species{display:flex;align-items:center;gap:.4rem;}
+.coeff-btn{width:2rem;height:2rem;border-radius:50%;border:1.5px solid rgba(232,200,64,.4);background:rgba(0,0,0,.25);color:var(--gold);font-size:1.05rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,transform .1s;flex-shrink:0;line-height:1;}
+.coeff-btn:hover:not(:disabled){background:rgba(232,200,64,.18);}
+.coeff-btn:active:not(:disabled){transform:scale(.9);}
+.coeff-btn:disabled{opacity:.25;cursor:default;}
+.coeff-num{font-family:'Caveat',cursive;font-weight:700;font-size:2.5rem;color:var(--gold);min-width:1.3rem;text-align:center;line-height:1;transition:color .2s;}
+.coeff-num.one{color:var(--chalk3);opacity:.6;}
+.formula{font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.7rem,3.6vw,3rem);color:var(--chalk);letter-spacing:.01em;line-height:1;}
+.formula sub{font-size:.55em;position:relative;top:.4em;}
+.chem-plus{font-family:'Caveat',cursive;font-size:2.2rem;color:var(--chalk2);line-height:1;}
+.chem-arrow{font-family:'Caveat',cursive;font-size:2.8rem;color:var(--chalk2);margin:0 .4rem;line-height:1;}
+
+.controls-row{display:flex;align-items:center;justify-content:center;gap:.7rem;margin-top:2rem;flex-wrap:wrap;}
+
+/* Atom counter — hidden by default so a student works out the tally
+   themselves first, then reveals it to self-check which element(s)
+   are still off and by how much. */
+.atom-counter{display:none;margin-top:1.1rem;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:.6rem 1.4rem;width:100%;max-width:360px;}
+.counter-row{display:flex;align-items:center;justify-content:space-between;padding:.32rem 0;border-bottom:1px solid rgba(255,255,255,.07);font-family:'Caveat',cursive;font-size:1.2rem;}
+.counter-row:last-child{border-bottom:none;}
+.counter-row.counter-header{font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--chalk3);font-family:'Inter',sans-serif;}
+.counter-el{color:var(--chalk);font-weight:700;min-width:2.6rem;}
+.counter-vals{display:flex;gap:1.3rem;}
+.counter-val{min-width:1.8rem;text-align:center;color:var(--chalk2);}
+.counter-row.match .counter-val{color:#90e8a8;}
+.counter-row.mismatch .counter-val{color:#f09090;}
+
+/* ── MODAL (reused pattern) ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:2000;display:flex;align-items:center;justify-content:center;animation:mfade .2s ease both;}
+@keyframes mfade{from{opacity:0}to{opacity:1}}
+@keyframes mpop{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:scale(1)}}
+.modal{background:var(--board2);border:2px solid rgba(80,200,120,.4);border-radius:18px;padding:2rem 2.4rem;max-width:360px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.65);animation:mpop .3s cubic-bezier(.175,.885,.32,1.4) both;}
+.modal-icon{font-size:2rem;margin-bottom:.7rem;}
+.modal-title{font-family:'Caveat',cursive;font-size:1.55rem;font-weight:700;color:var(--chalk);margin-bottom:.45rem;}
+.modal-msg{font-size:.88rem;color:var(--chalk2);line-height:1.58;margin-bottom:1rem;}
+.modal-ok{background:var(--gold);color:var(--wood3);border:none;padding:9px 30px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.05em;}
+.modal-ok:hover{filter:brightness(1.1);}
+
+/* ── TRAY ── */
+.chalk-tray{background:var(--board3);border-top:3px solid var(--wood3);padding:.55rem 1.2rem;display:flex;flex-direction:column;gap:.3rem;position:relative;z-index:5;}
+.tray-tips{font-size:.75rem;color:var(--chalk3);}
+.tray-status{display:flex;align-items:center;gap:8px;}
+.s-dot{width:7px;height:7px;border-radius:50%;background:var(--chalk3);flex-shrink:0;transition:background .3s,box-shadow .3s;}
+.s-dot.ok{background:#50c878;box-shadow:0 0 7px #50c87870;}
+.s-dot.err{background:#e05555;box-shadow:0 0 7px #e0555570;}
+.s-txt{font-family:'Caveat',cursive;font-size:.95rem;transition:color .3s;color:var(--chalk3);}
+.s-txt.ok{color:#90e8a8;}.s-txt.err{color:#f09090;}
+</style>
+</head>
+<body>
+<div class="wood-frame">
+  <div class="wood-inner">
+    <a class="btn ghost" href="../index.html">🏠 Hub</a>
+    <div class="brand">🧪 Reaction<em>Balancer</em></div>
+    <div class="input-row">
+      <input class="eq-in" id="eqInput" value="Fe + O2 -> Fe2O3" spellcheck="false">
+    </div>
+    <button class="btn" id="loadBtn" type="button">Load</button>
+    <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+  </div>
+  <div class="presets-row" id="presetsRow">
+    <span class="presets-label">Quick load:</span>
+    <button class="preset-btn" data-eq="Fe + O2 -> Fe2O3" type="button">Rusting Iron</button>
+    <button class="preset-btn" data-eq="CH4 + O2 -> CO2 + H2O" type="button">Burning Methane</button>
+    <button class="preset-btn" data-eq="H2 + O2 -> H2O" type="button">Making Water</button>
+    <button class="preset-btn" data-eq="N2 + H2 -> NH3" type="button">Making Ammonia</button>
+    <button class="preset-btn" data-eq="NaOH + H2SO4 -> Na2SO4 + H2O" type="button">Neutralising Acid</button>
+    <button class="preset-btn" data-eq="Zn + HCl -> ZnCl2 + H2" type="button">Zinc + Acid</button>
+  </div>
+</div>
+
+<div class="blackboard">
+  <div class="board-main">
+    <div class="eq-stage" id="eqStage"></div>
+    <div class="controls-row">
+      <button class="btn ghost small" id="counterToggle" type="button">👁 Show atom counts</button>
+      <button class="btn ghost small" id="resetBtn" type="button">↺ Reset coefficients</button>
+    </div>
+    <div class="atom-counter" id="atomCounter"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="balancedModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-icon">🧪</div>
+    <div class="modal-title">Balanced!</div>
+    <div class="modal-msg">Every element has the same total on both sides — the equation is balanced.</div>
+    <button class="modal-ok" id="balancedModalOk" type="button">Nice!</button>
+  </div>
+</div>
+
+<div class="chalk-tray">
+  <div class="tray-tips">Use the − / + next to each formula to change its coefficient until every element matches on both sides.</div>
+  <div class="tray-status">
+    <div class="s-dot" id="sDot"></div>
+    <span class="s-txt" id="sTxt">Load an equation to begin.</span>
+  </div>
+</div>
+
+<script>
+const MAX_COEFF=12;
+
+// ── FORMULA PARSER ──
+// Reads a chemical formula (with optional (groups) and subscripts) into
+// an element→count map for one molecule, e.g. "Ca(OH)2" → {Ca:1,O:2,H:2}.
+function parseFormula(str){
+  let i=0;
+  function parseGroup(){
+    const counts={};
+    while(i<str.length&&str[i]!==')'){
+      const ch=str[i];
+      if(ch==='('){
+        i++;
+        const inner=parseGroup();
+        if(str[i]===')')i++;
+        let numStr='';
+        while(i<str.length&&/[0-9]/.test(str[i])){numStr+=str[i];i++;}
+        const mult=numStr?parseInt(numStr,10):1;
+        for(const el in inner)counts[el]=(counts[el]||0)+inner[el]*mult;
+      }else if(/[A-Z]/.test(ch)){
+        let sym=ch;i++;
+        while(i<str.length&&/[a-z]/.test(str[i])){sym+=str[i];i++;}
+        let numStr='';
+        while(i<str.length&&/[0-9]/.test(str[i])){numStr+=str[i];i++;}
+        counts[sym]=(counts[sym]||0)+(numStr?parseInt(numStr,10):1);
+      }else{
+        i++; // skip stray characters (spaces, charge marks, …)
+      }
+    }
+    return counts;
+  }
+  return parseGroup();
+}
+
+// ── EQUATION PARSER ──
+// "Fe + O2 -> Fe2O3" → {reactants:[{formula,coeff,counts}...], products:[...]}
+function parseEquation(str){
+  if(!str)throw new Error('Type or load an equation first.');
+  const parts=str.split(/->|=>|→|=/);
+  if(parts.length!==2)throw new Error('Use "->" (or "=") to separate reactants from products, e.g. Fe + O2 -> Fe2O3');
+  const parseSide=side=>{
+    const tokens=side.split('+').map(s=>s.trim()).filter(Boolean);
+    if(!tokens.length)throw new Error('Each side needs at least one substance.');
+    return tokens.map(token=>{
+      const m=token.match(/^(\d+)\s*(.+)$/);
+      let coeff=1,formula=token;
+      if(m){coeff=parseInt(m[1],10);formula=m[2];}
+      const counts=parseFormula(formula);
+      if(Object.keys(counts).length===0)throw new Error(`Couldn't read the formula "${formula}".`);
+      return{formula,coeff,counts};
+    });
+  };
+  return{reactants:parseSide(parts[0]),products:parseSide(parts[1])};
+}
+
+function formatFormulaHTML(formula){
+  return formula.replace(/(\d+)/g,'<sub>$1</sub>');
+}
+
+function sideTotals(species){
+  const totals={};
+  species.forEach(sp=>{
+    for(const el in sp.counts)totals[el]=(totals[el]||0)+sp.counts[el]*sp.coeff;
+  });
+  return totals;
+}
+function elementUnion(eq){
+  const L=sideTotals(eq.reactants),R=sideTotals(eq.products);
+  const els=Array.from(new Set([...Object.keys(L),...Object.keys(R)])).sort();
+  return{L,R,els};
+}
+function isBalanced(eq){
+  const{L,R,els}=elementUnion(eq);
+  if(!els.length)return false;
+  return els.every(el=>(L[el]||0)===(R[el]||0));
+}
+
+// ── STATE ──
+let currentEq=null;
+let wasBalanced=false;
+let countersVisible=false;
+
+// ── RENDER ──
+function renderSpecies(sp){
+  const wrap=document.createElement('div');wrap.className='species';
+  const minus=document.createElement('button');minus.type='button';minus.className='coeff-btn';minus.textContent='−';
+  minus.disabled=sp.coeff<=1;
+  minus.onclick=()=>{if(sp.coeff>1){sp.coeff--;onCoeffChange();}};
+  const num=document.createElement('span');num.className='coeff-num'+(sp.coeff===1?' one':'');num.textContent=sp.coeff;
+  const plus=document.createElement('button');plus.type='button';plus.className='coeff-btn';plus.textContent='+';
+  plus.disabled=sp.coeff>=MAX_COEFF;
+  plus.onclick=()=>{if(sp.coeff<MAX_COEFF){sp.coeff++;onCoeffChange();}};
+  const formula=document.createElement('span');formula.className='formula';formula.innerHTML=formatFormulaHTML(sp.formula);
+  wrap.appendChild(minus);wrap.appendChild(num);wrap.appendChild(plus);wrap.appendChild(formula);
+  return wrap;
+}
+function renderEquation(){
+  const stage=document.getElementById('eqStage');
+  stage.innerHTML='';
+  if(!currentEq)return;
+  const row=document.createElement('div');row.className='eq-row';
+  currentEq.reactants.forEach((sp,i)=>{
+    if(i>0){const p=document.createElement('span');p.className='chem-plus';p.textContent='+';row.appendChild(p);}
+    row.appendChild(renderSpecies(sp));
+  });
+  const arrow=document.createElement('span');arrow.className='chem-arrow';arrow.textContent='→';row.appendChild(arrow);
+  currentEq.products.forEach((sp,i)=>{
+    if(i>0){const p=document.createElement('span');p.className='chem-plus';p.textContent='+';row.appendChild(p);}
+    row.appendChild(renderSpecies(sp));
+  });
+  stage.appendChild(row);
+}
+function renderCounters(){
+  const box=document.getElementById('atomCounter');
+  box.innerHTML='';
+  if(!currentEq)return;
+  const{L,R,els}=elementUnion(currentEq);
+  const header=document.createElement('div');header.className='counter-row counter-header';
+  header.innerHTML='<span class="counter-el">Element</span><span class="counter-vals"><span class="counter-val">Left</span><span class="counter-val">Right</span></span>';
+  box.appendChild(header);
+  els.forEach(el=>{
+    const l=L[el]||0,r=R[el]||0;
+    const row=document.createElement('div');
+    row.className='counter-row '+(l===r?'match':'mismatch');
+    row.innerHTML=`<span class="counter-el">${el}</span><span class="counter-vals"><span class="counter-val">${l}</span><span class="counter-val">${r}</span></span>`;
+    box.appendChild(row);
+  });
+}
+function updateStatus(bal){
+  const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt');
+  dot.className='s-dot'+(bal?' ok':'');
+  txt.className='s-txt'+(bal?' ok':'');
+  txt.textContent=bal?'Balanced — every element matches on both sides!':'Not balanced yet — adjust the coefficients.';
+}
+function updateStatusError(msg){
+  const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt');
+  dot.className='s-dot err';
+  txt.className='s-txt err';
+  txt.textContent=msg;
+}
+function onCoeffChange(){
+  renderEquation();
+  renderCounters();
+  const bal=isBalanced(currentEq);
+  updateStatus(bal);
+  if(bal&&!wasBalanced){
+    document.getElementById('balancedModal').style.display='flex';
+  }
+  wasBalanced=bal;
+}
+
+// ── LOAD / CLEAR / RESET ──
+function doLoad(){
+  const raw=document.getElementById('eqInput').value.trim();
+  let parsed;
+  try{parsed=parseEquation(raw);}
+  catch(e){updateStatusError(e.message);return;}
+  currentEq=parsed;
+  wasBalanced=false;
+  renderEquation();
+  renderCounters();
+  updateStatus(isBalanced(currentEq));
+}
+document.getElementById('loadBtn').onclick=doLoad;
+document.getElementById('eqInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLoad();});
+document.getElementById('clearBtn').onclick=()=>{
+  document.getElementById('eqInput').value='';
+  document.getElementById('eqInput').focus();
+};
+document.getElementById('resetBtn').onclick=()=>{
+  if(!currentEq)return;
+  currentEq.reactants.forEach(sp=>sp.coeff=1);
+  currentEq.products.forEach(sp=>sp.coeff=1);
+  wasBalanced=false;
+  onCoeffChange();
+};
+document.querySelectorAll('.preset-btn').forEach(b=>{
+  b.onclick=()=>{
+    document.getElementById('eqInput').value=b.dataset.eq;
+    doLoad();
+  };
+});
+document.getElementById('counterToggle').onclick=()=>{
+  countersVisible=!countersVisible;
+  const box=document.getElementById('atomCounter');
+  box.style.display=countersVisible?'block':'none';
+  document.getElementById('counterToggle').textContent=countersVisible?'🙈 Hide atom counts':'👁 Show atom counts';
+};
+document.getElementById('balancedModalOk').onclick=()=>{
+  document.getElementById('balancedModal').style.display='none';
+};
+
+doLoad();
+</script>
+</body>
+</html>
