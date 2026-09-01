@@ -56,7 +56,25 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .side-label.unknown{fill:var(--cy);font-weight:700;}
 .tri-caption{font-size:.68rem;color:var(--chalk3);font-style:italic;}
 
-.ratio-picker{display:flex;gap:.8rem;margin-top:1.6rem;flex-wrap:wrap;justify-content:center;}
+/* Step 1: identify which labelled side is which, before any ratio talk —
+   raw O/A/H recognition is its own sub-skill. */
+.identify-panel{display:none;flex-direction:column;gap:1.1rem;margin-top:1.6rem;align-items:center;}
+.identify-row{display:flex;flex-direction:column;align-items:center;gap:.5rem;}
+.identify-label{font-size:.9rem;color:var(--chalk2);}
+.identify-label strong{color:var(--cy);font-family:'Caveat',cursive;font-size:1.25rem;}
+.identify-btns{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;}
+.identify-btn{
+  background:rgba(0,0,0,.22);border:2px solid rgba(232,200,64,.3);border-radius:12px;
+  padding:.5rem 1.1rem;cursor:pointer;color:var(--chalk);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  transition:background .12s,border-color .12s,transform .1s,opacity .15s;
+}
+.identify-btn:hover{background:rgba(232,200,64,.12);transform:translateY(-1px);}
+.identify-btn.correct{border-color:#50c878;background:rgba(80,200,120,.15);color:#90e8a8;cursor:default;}
+.identify-btn.correct:hover{transform:none;}
+.identify-btn.wrong{border-color:#e05555;background:rgba(224,85,85,.15);animation:wiggle .35s ease;}
+.identify-btn:disabled{opacity:.35;cursor:default;pointer-events:none;}
+
+.ratio-picker{display:none;gap:.8rem;margin-top:1.6rem;flex-wrap:wrap;justify-content:center;}
 .ratio-btn{
   background:rgba(0,0,0,.22);border:2px solid rgba(232,200,64,.3);border-radius:14px;
   padding:.7rem 1.3rem;cursor:pointer;text-align:center;transition:background .12s,border-color .12s,transform .1s;
@@ -68,6 +86,34 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .ratio-btn.correct{border-color:#50c878;background:rgba(80,200,120,.15);}
 .ratio-btn.wrong{border-color:#e05555;background:rgba(224,85,85,.15);animation:wiggle .35s ease;}
 @keyframes wiggle{0%,100%{transform:translateX(0);}20%{transform:translateX(-4px);}50%{transform:translateX(4px);}75%{transform:translateX(-2px);}}
+
+/* Step 3: drag each value into the ratio template — the physical act of
+   placing "which value is on top" reinforces the SOH/CAH/TOA definition
+   more than just having the substituted equation appear pre-filled. */
+.build-panel{display:none;flex-direction:column;align-items:center;gap:1.5rem;margin-top:1.8rem;}
+.build-tray{display:flex;gap:1.2rem;min-height:3.6rem;align-items:center;}
+.build-chip{
+  background:rgba(0,0,0,.25);border:2px solid rgba(232,200,64,.45);border-radius:12px;
+  padding:.4rem 1.1rem;font-family:Georgia,'Times New Roman',serif;font-size:1.7rem;color:var(--chalk);
+  cursor:grab;user-select:none;transition:transform .1s,box-shadow .15s,opacity .15s;
+  animation:pulse 1.6s ease-in-out infinite;
+}
+.build-chip.x-term{color:var(--cy);font-weight:700;}
+.build-chip:active{cursor:grabbing;}
+.build-chip.dragging{opacity:.25;}
+.build-template{display:flex;align-items:center;gap:.9rem;font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.5rem,3.4vw,2.4rem);color:var(--chalk);}
+.drop-zone{
+  min-width:2.2rem;min-height:1.4rem;border:2px dashed rgba(240,237,228,.35);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;padding:.1em .5em;color:var(--chalk3);
+  transition:border-color .15s,background .15s;
+}
+.drop-zone.drop-ready{border-color:var(--gold);background:rgba(232,200,64,.12);}
+.drop-zone.filled{border-style:solid;border-color:#50c878;color:var(--chalk);}
+.build-ghost{
+  position:fixed;pointer-events:none;z-index:9999;font-family:Georgia,'Times New Roman',serif;font-size:1.8rem;
+  color:var(--gold);background:rgba(20,28,20,.92);border:2px solid var(--gold);border-radius:10px;
+  padding:.3rem .9rem;transform:translate(-50%,-50%);
+}
 
 .eq-stage{margin-top:1.8rem;min-height:110px;display:flex;align-items:center;justify-content:center;}
 .eq-line{display:flex;align-items:center;gap:.9rem;font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.5rem,3.4vw,2.4rem);color:var(--chalk);}
@@ -171,10 +217,42 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div class="tri-caption">(diagram not to scale)</div>
     </div>
 
+    <div class="identify-panel" id="identifyPanel">
+      <div class="identify-row">
+        <span class="identify-label">The side labelled <strong id="idKnownLabel">9</strong> is the:</span>
+        <div class="identify-btns" data-role="known">
+          <button class="identify-btn" data-side="opp" type="button">Opposite</button>
+          <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
+          <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
+        </div>
+      </div>
+      <div class="identify-row">
+        <span class="identify-label">The side labelled <strong>x</strong> is the:</span>
+        <div class="identify-btns" data-role="unknown">
+          <button class="identify-btn" data-side="opp" type="button">Opposite</button>
+          <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
+          <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
+        </div>
+      </div>
+    </div>
+
     <div class="ratio-picker" id="ratioPicker">
       <button class="ratio-btn" data-r="sin" type="button"><span class="ratio-name">SOH</span><span class="ratio-sub">sin θ = O ⁄ H</span></button>
       <button class="ratio-btn" data-r="cos" type="button"><span class="ratio-name">CAH</span><span class="ratio-sub">cos θ = A ⁄ H</span></button>
       <button class="ratio-btn" data-r="tan" type="button"><span class="ratio-name">TOA</span><span class="ratio-sub">tan θ = O ⁄ A</span></button>
+    </div>
+
+    <div class="build-panel" id="buildPanel">
+      <div class="build-tray" id="buildTray"></div>
+      <div class="build-template">
+        <span class="trig-chip" id="buildTrigChip"></span>
+        <span class="eq-eq">=</span>
+        <span class="frac">
+          <span class="drop-zone" id="dropNum" data-slot="num">?</span>
+          <span class="frac-line"></span>
+          <span class="drop-zone" id="dropDen" data-slot="den">?</span>
+        </span>
+      </div>
     </div>
 
     <div class="eq-stage" id="eqStage"></div>
@@ -267,7 +345,10 @@ function generateScenario(){
 
 // ── STATE ──
 let scenario=null;
+let phase='identify'; // 'identify' -> 'ratio' -> 'build' -> 'solve'
 let ratioChosen=false;
+let idKnownCorrect=false,idUnknownCorrect=false;
+let buildNumFilled=false,buildDenFilled=false;
 let moveStep=0; // 0 = initial ratio(θ)=NUM/DEN, then advances as chips move
 
 // ── TRIANGLE DIAGRAM ──
@@ -300,18 +381,53 @@ function renderTriangle(scn){
   document.getElementById('triSvg').innerHTML=svg;
 }
 
-// ── RATIO PICKER ──
+// ── STEP 1: IDENTIFY THE SIDES ──
+// Raw O/A/H recognition, checked independently of ratio choice — a
+// student can only get the ratio right once they know what they're
+// looking at.
+const SIDE_NAME={opp:'Opposite',adj:'Adjacent',hyp:'Hypotenuse'};
+function resetIdentifyPanel(){
+  document.querySelectorAll('.identify-btn').forEach(b=>{b.classList.remove('correct','wrong');b.disabled=false;});
+}
+document.querySelectorAll('.identify-btn').forEach(b=>{
+  b.onclick=()=>{
+    if(phase!=='identify')return;
+    const role=b.closest('.identify-btns').dataset.role; // 'known' | 'unknown'
+    if(role==='known'&&idKnownCorrect)return;
+    if(role==='unknown'&&idUnknownCorrect)return;
+    const expected=role==='known'?scenario.knownSide:scenario.unknownSide;
+    if(b.dataset.side===expected){
+      b.classList.add('correct');
+      b.closest('.identify-btns').querySelectorAll('.identify-btn').forEach(sib=>{if(sib!==b)sib.disabled=true;});
+      if(role==='known')idKnownCorrect=true;else idUnknownCorrect=true;
+      if(idKnownCorrect&&idUnknownCorrect){
+        phase='ratio';
+        setStatus('ok','Nice — now pick the matching ratio.');
+        document.getElementById('ratioPicker').style.display='flex';
+      }else{
+        setStatus('ok','Correct — now the other side.');
+      }
+    }else{
+      b.classList.add('wrong');
+      setTimeout(()=>b.classList.remove('wrong'),350);
+      setStatus('err',"Not quite — the Hypotenuse is opposite the right angle; Opposite is across from the marked angle; Adjacent is the side touching it.");
+    }
+  };
+});
+
+// ── STEP 2: RATIO PICKER ──
 function resetRatioPicker(){
   document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('correct','wrong'));
 }
 document.querySelectorAll('.ratio-btn').forEach(b=>{
   b.onclick=()=>{
-    if(ratioChosen)return;
+    if(phase!=='ratio'||ratioChosen)return;
     if(b.dataset.r===scenario.ratio){
       b.classList.add('correct');
       ratioChosen=true;
-      setStatus('ok','Correct ratio! Now rearrange it to get x by itself.');
-      renderEquation();
+      phase='build';
+      setStatus('ok','Correct! Now drag each value into the matching spot.');
+      showBuildPanel();
     }else{
       b.classList.add('wrong');
       setTimeout(()=>b.classList.remove('wrong'),350);
@@ -319,6 +435,84 @@ document.querySelectorAll('.ratio-btn').forEach(b=>{
     }
   };
 });
+
+// ── STEP 3: DRAG THE VALUES INTO THE RATIO TEMPLATE ──
+// Two draggable chips (the known number and "x") get placed into the
+// numerator/denominator blanks of "ratio(θ) = ⬚ ⁄ ⬚" — physically
+// placing the value reinforces which side the ratio's definition puts on
+// top, rather than the substituted equation just appearing pre-filled.
+function showBuildPanel(){
+  document.getElementById('buildPanel').style.display='flex';
+  buildNumFilled=false;buildDenFilled=false;
+  document.getElementById('buildTrigChip').textContent=ratioLabel();
+  const dropNum=document.getElementById('dropNum'),dropDen=document.getElementById('dropDen');
+  dropNum.textContent='?';dropNum.classList.remove('filled');
+  dropDen.textContent='?';dropDen.classList.remove('filled');
+  const tray=document.getElementById('buildTray');
+  tray.innerHTML='';
+  const knownChip=makeBuildChip(String(scenario.knownVal),false);
+  const xChip=makeBuildChip('x',true);
+  const order=Math.random()<0.5?[knownChip,xChip]:[xChip,knownChip];
+  order.forEach(c=>tray.appendChild(c));
+}
+function makeBuildChip(label,isX){
+  const chip=document.createElement('div');
+  chip.className='build-chip'+(isX?' x-term':'');
+  chip.textContent=label;
+  chip.onmousedown=e=>startBuildDrag(e,chip,isX);
+  return chip;
+}
+function startBuildDrag(e,chip,isX){
+  e.preventDefault();
+  const ghost=document.createElement('div');
+  ghost.className='build-ghost';
+  ghost.textContent=chip.textContent;
+  ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
+  document.body.appendChild(ghost);
+  chip.classList.add('dragging');
+  const dropNum=document.getElementById('dropNum'),dropDen=document.getElementById('dropDen');
+  const mm=ev=>{
+    ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';
+    [dropNum,dropDen].forEach(z=>{
+      if(z.classList.contains('filled')){z.classList.remove('drop-ready');return;}
+      const r=z.getBoundingClientRect();
+      const over=ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom;
+      z.classList.toggle('drop-ready',over);
+    });
+  };
+  const mu=ev=>{
+    document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);
+    ghost.remove();
+    chip.classList.remove('dragging');
+    dropNum.classList.remove('drop-ready');dropDen.classList.remove('drop-ready');
+    const target=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.drop-zone');
+    if(target&&!target.classList.contains('filled'))handleDrop(target,chip,isX);
+  };
+  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+}
+function handleDrop(zone,chip,isX){
+  const slot=zone.dataset.slot; // 'num' | 'den'
+  const expectedIsX=slot==='num'?scenario.xIsNumerator:!scenario.xIsNumerator;
+  if(isX===expectedIsX){
+    zone.textContent=chip.textContent;
+    zone.classList.add('filled');
+    chip.remove();
+    if(slot==='num')buildNumFilled=true;else buildDenFilled=true;
+    if(buildNumFilled&&buildDenFilled){
+      setStatus('ok','Equation built! Now rearrange it to get x by itself.');
+      setTimeout(()=>{
+        phase='solve';
+        document.getElementById('buildPanel').style.display='none';
+        moveStep=0;
+        renderEquation();
+      },500);
+    }else{
+      setStatus('ok','Placed correctly — one more to go.');
+    }
+  }else{
+    setStatus('err',"That doesn't go there — check SOH/CAH/TOA again for what's on top.");
+  }
+}
 
 // ── EQUATION STAGE (rearrange by clicking the highlighted, atomic chip) ──
 function ratioLabel(){return`${scenario.ratio}(${scenario.angle}°)`;}
@@ -390,13 +584,21 @@ function setStatus(kind,msg){
 // ── QUESTION LIFECYCLE ──
 function loadScenario(scn){
   scenario=scn;
+  phase='identify';
   ratioChosen=false;
+  idKnownCorrect=false;idUnknownCorrect=false;
+  buildNumFilled=false;buildDenFilled=false;
   moveStep=0;
+  resetIdentifyPanel();
   resetRatioPicker();
   renderTriangle(scenario);
+  document.getElementById('idKnownLabel').textContent=scenario.knownVal;
+  document.getElementById('identifyPanel').style.display='flex';
+  document.getElementById('ratioPicker').style.display='none';
+  document.getElementById('buildPanel').style.display='none';
   document.getElementById('eqStage').innerHTML='';
   document.getElementById('answerRow').style.display='none';
-  setStatus('','Which ratio applies here — SOH, CAH or TOA?');
+  setStatus('','Which side is the labelled value, and which is x?');
 }
 document.getElementById('newBtn').onclick=()=>loadScenario(generateScenario());
 document.getElementById('cLoadBtn').onclick=()=>{
