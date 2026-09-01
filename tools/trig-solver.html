@@ -327,7 +327,7 @@ function renderEquation(){
   const trigChip=(movable)=>`<span class="trig-chip${movable?' movable':''}" ${movable?'id="trigChip"':''}>${ratioLabel()}</span>`;
   let html='';
   if(moveStep===0){
-    const num=scenario.xIsNumerator?'<span class="term x-term">x</span>':`<span class="term" id="denChip">${scenario.knownVal}</span>`;
+    const num=scenario.xIsNumerator?'<span class="term x-term">x</span>':`<span class="term">${scenario.knownVal}</span>`;
     // At step 0 the denominator is always what moves first (multiplying
     // both sides by it) — whichever value that is, numeric or x.
     const den=scenario.xIsNumerator?`<span class="term movable" id="denChip">${scenario.knownVal}</span>`:'<span class="term movable x-term" id="denChip">x</span>';
