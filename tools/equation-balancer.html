@@ -235,6 +235,11 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .psqrt-tick{ color:#6dc; font-family:monospace; font-size:1.5rem; margin-right:1px; line-height:1; }
 .psqrt-body{ font-family:'Courier New',monospace; font-size:1.5rem; color:#ddd; border-top:1.5px solid #666; padding:1px 4px 0; min-width:12px; text-align:center; }
 
+.ptrig{ display:inline-flex; align-items:center; cursor:pointer; border-radius:3px; padding:1px 3px; }
+.ptrig:hover{ background:rgba(255,255,255,.05); }
+.ptrig-name{ color:#6dc; font-family:'Courier New',monospace; font-size:1.4rem; font-weight:700; }
+.ptrig-body{ font-family:'Courier New',monospace; font-size:1.4rem; color:#ddd; padding:1px 4px; min-width:12px; text-align:center; }
+
 /* Blinking cursor */
 @keyframes kb-blink{ 0%,100%{opacity:1} 50%{opacity:0} }
 .preview-cursor{
@@ -412,6 +417,10 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     <button class="ck ck-var" data-ins="z">z</button>
     <button class="ck ck-del" onclick="calcBackspace()">⌫</button>
 
+    <button class="ck ck-fn" style="grid-column:span 2" onclick="calcInsertSin()">sin</button>
+    <button class="ck ck-fn" style="grid-column:span 2" onclick="calcInsertCos()">cos</button>
+    <button class="ck ck-fn" style="grid-column:span 2" onclick="calcInsertTan()">tan</button>
+
     <button class="ck ck-arrow" onclick="calcMoveCursor(-1)">◀</button>
     <button class="ck ck-arrow" onclick="calcMoveCursor(1)">▶</button>
     <button class="ck ck-eq" data-ins="=">=</button>
@@ -521,6 +530,15 @@ class Atom    extends Node{constructor(v){super('atom');this.val=v;}}
 class OpNode  extends Node{constructor(t,ch){super(t);this.children=ch;}}
 class DivNode extends Node{constructor(n,d){super('div');this.num=n;this.den=d;}}
 class PowNode extends Node{constructor(b,e){super('pow');this.base=b;this.exp=e;}}
+// sin/cos/tan of an angle in degrees. Deliberately keyed on `.arg`, not
+// `.children`/`.num`/`.den`/`.base` like the other node types — every
+// generic tree-walker in this file (findPath, hasCancellable, the mult/
+// add flattening in sStructN, …) only looks at those specific property
+// names, so a func node's argument is invisible to them by construction.
+// That's what makes "sin(45°)" behave as one atomic term everywhere:
+// cross-mode dragging can never find/grab the 45 out from inside it,
+// because findPath simply has no path down into `.arg` to find it with.
+class FuncNode extends Node{constructor(name,arg){super('func');this.name=name;this.arg=arg;}}
 
 // ══════════════════════════════════════
 //  ENGINE
@@ -576,7 +594,10 @@ class Engine{
   parseExpr(s){return s?this.pAdd(this.tok(s.trim())):new Atom('0');}
   tok(s){
     s=s.replace(/\s+/g,'');
-    const t=[],re=/([+\-*/^()])|([a-zA-Z](?:_[a-zA-Z0-9]+)?)|([0-9]+\.?[0-9]*)/g;
+    // sin/cos/tan must be tried before the single-letter variable pattern,
+    // or "sin(" tokenizes as the three separate variables s, i, n.
+    const re=/([+\-*/^()])|(sin|cos|tan)|([a-zA-Z](?:_[a-zA-Z0-9]+)?)|([0-9]+\.?[0-9]*)/g;
+    const t=[];
     let m;while((m=re.exec(s))!==null)if(m[0])t.push(m[0]);return t;
   }
   pAdd(tok){
@@ -607,7 +628,17 @@ class Engine{
     return l;
   }
   pPow(tok){let l=this.pAtom(tok);if(tok.length&&tok[0]==='^'){tok.shift();l=new PowNode(l,this.pAtom(tok));}return l;}
-  pAtom(tok){const t=tok.shift();if(t==='('){const n=this.pAdd(tok);tok.shift();return n;}return new Atom(t);}
+  pAtom(tok){
+    const t=tok.shift();
+    if(t==='sin'||t==='cos'||t==='tan'){
+      if(tok[0]==='(')tok.shift();
+      const arg=this.pAdd(tok);
+      if(tok[0]===')')tok.shift();
+      return new FuncNode(t,arg);
+    }
+    if(t==='('){const n=this.pAdd(tok);tok.shift();return n;}
+    return new Atom(t);
+  }
 
   // ── RESTORE ──
   restore(n){
@@ -616,6 +647,7 @@ class Engine{
     else if(n.type==='add'||n.type==='mult')m=new OpNode(n.type,n.children.map(c=>this.restore(c)));
     else if(n.type==='div')m=new DivNode(this.restore(n.num),this.restore(n.den));
     else if(n.type==='pow')m=new PowNode(this.restore(n.base),this.restore(n.exp));
+    else if(n.type==='func')m=new FuncNode(n.name,this.restore(n.arg));
     if(m)m.id=n.id;return m;
   }
 
@@ -710,6 +742,7 @@ class Engine{
     if(n.children)n.children=n.children.map(c=>this.sStructN(c));
     if(n.num){n.num=this.sStructN(n.num);n.den=this.sStructN(n.den);}
     if(n.base){n.base=this.sStructN(n.base);n.exp=this.sStructN(n.exp);}
+    if(n.type==='func'){n.arg=this.sStructN(n.arg);return n;}
     // Flatten same-type nesting
     if(n.type==='add'||n.type==='mult'){
       let f=[];n.children.forEach(c=>{c.type===n.type?f.push(...c.children):f.push(c);});n.children=f;
@@ -817,6 +850,20 @@ class Engine{
     if(n.children)n.children=n.children.map(c=>this.sFullN(c));
     if(n.num){n.num=this.sFullN(n.num);n.den=this.sFullN(n.den);}
     if(n.base){n.base=this.sFullN(n.base);n.exp=this.sFullN(n.exp);}
+    // sin/cos/tan only evaluate once the angle itself has fully reduced to
+    // a plain number — otherwise it's left as-is (e.g. sin(2x) can't be
+    // numerically evaluated, so it stays symbolic). Degrees throughout,
+    // to match how the rest of the app teaches trig.
+    if(n.type==='func'){
+      n.arg=this.sFullN(n.arg);
+      if(n.arg instanceof Atom&&!isNaN(n.arg.val)){
+        const rad=parseFloat(n.arg.val)*Math.PI/180;
+        let val=n.name==='sin'?Math.sin(rad):n.name==='cos'?Math.cos(rad):Math.tan(rad);
+        if(Math.abs(val)<1e-10)val=0; // clear float noise, e.g. cos(90°) → 0 not 6.1e-17
+        return new Atom(this.fmt(val));
+      }
+      return n;
+    }
     if(n.type==='add'||n.type==='mult'){
       let f=[];n.children.forEach(c=>{c.type===n.type?f.push(...c.children):f.push(c);});n.children=f;
     }
@@ -927,6 +974,10 @@ class Engine{
   hasSimplifiable(n,parentNode=null){
     if(!n)return false;
     if(this.isFracExp(n,parentNode))return false;
+    if(n.type==='func'){
+      if(n.arg instanceof Atom&&!isNaN(n.arg.val))return true;
+      return this.hasSimplifiable(n.arg,n); // e.g. sin(2+3) — simplify the angle first
+    }
     if(n.type==='mult'){const nums=n.children.filter(c=>c instanceof Atom&&!isNaN(c.val));if(nums.length>=2)return true;}
     if(n.type==='add'&&n.children.length>1){
       // Like terms (3x + x, 3 + 5, 2xy − xy, …) share a restKey once you
@@ -1502,6 +1553,13 @@ class Engine{
       catch(e){el.textContent=displayVal;}
       return el;
     }
+    if(node.type==='func'){
+      const el=document.createElement('span');
+      const latex=`\\${node.name}(${this.nodeStr(node.arg)}°)`;
+      try{el.innerHTML=katex.renderToString(latex,{throwOnError:false,displayMode:false});}
+      catch(e){el.textContent=`${node.name}(${this.nodeToText(node.arg)}°)`;}
+      return el;
+    }
     const el=document.createElement('div');
     el.className='node';
     if(np){const p=document.createElement('span');p.className='paren';p.textContent='(';el.appendChild(p);}
@@ -1578,6 +1636,7 @@ class Engine{
       if(!isNaN(v)&&v<0)return`−${Math.abs(v)}`;
       return n.val;
     }
+    if(n.type==='func')return`${n.name}(${this.nodeToText(n.arg)}°)`;
     if(n.type==='add'){
       return n.children.map((c,i)=>{
         const isNeg=this.isNegTerm(c);
@@ -1695,8 +1754,9 @@ class Engine{
              (node.type==='mult'&&parentType==='pow')||
              (node.type==='div'&&parentType==='pow');
 
-    // ── ATOM leaf ──
-    if(node instanceof Atom){
+    // ── ATOM leaf (and func nodes — sin/cos/tan behave as one atomic leaf
+    // too, never as a container whose argument can be individually grabbed) ──
+    if(node instanceof Atom||node.type==='func'){
       const ancestorMovable=path?this.getMovable(path,root):null;
       const isDirectly=ancestorMovable&&ancestorMovable.id===node.id;
 
@@ -1722,9 +1782,15 @@ class Engine{
 
       const el=document.createElement('span');
       el.className=cls;el.id=node.id;
-      const displayVal=(node.val==='-1')?'-1':node.val;
-      try{el.innerHTML=katex.renderToString(displayVal,{throwOnError:false,displayMode:false});}
-      catch(e){el.textContent=displayVal;}
+      if(node.type==='func'){
+        const latex=`\\${node.name}(${this.nodeStr(node.arg)}°)`;
+        try{el.innerHTML=katex.renderToString(latex,{throwOnError:false,displayMode:false});}
+        catch(e){el.textContent=`${node.name}(${this.nodeToText(node.arg)}°)`;}
+      }else{
+        const displayVal=(node.val==='-1')?'-1':node.val;
+        try{el.innerHTML=katex.renderToString(displayVal,{throwOnError:false,displayMode:false});}
+        catch(e){el.textContent=displayVal;}
+      }
 
       if(MODE!=='cross'){
         return el;
@@ -1902,6 +1968,7 @@ class Engine{
     if(n.type==='div')return`\\frac{${this.nodeStr(n.num)}}{${this.nodeStr(n.den)}}`;
     if(n.type==='mult')return n.children.map(c=>this.nodeStr(c)).join('');
     if(n.type==='add')return n.children.map(c=>this.nodeStr(c)).join('+');
+    if(n.type==='func')return`\\${n.name}(${this.nodeStr(n.arg)}°)`;
     return'?';
   }
 
@@ -2378,6 +2445,45 @@ function calcInsertSqrt(){
   inp.value = result; inp.focus(); inp.setSelectionRange(newPos, newPos); syncCalcDisplay();
 }
 
+// sin/cos/tan keys — same wrap-selection-or-preceding-term behaviour as
+// the √ key, just parameterised on the function name.
+function calcInsertFunc(name){
+  const inp = document.getElementById('eqInput');
+  const s = inp.selectionStart ?? inp.value.length;
+  const e = inp.selectionEnd   ?? inp.value.length;
+  const v = inp.value;
+  let result, newPos;
+  if(s !== e){
+    const sel = v.slice(s,e);
+    const inner = (sel.startsWith('(') && sel.endsWith(')')) ? sel.slice(1,-1) : sel;
+    const ins = `${name}(${inner})`;
+    result = v.slice(0,s) + ins + v.slice(e);
+    newPos = s + ins.length;
+  } else {
+    const before = v.slice(0,s);
+    const gm = before.match(/(\([^()]*\))$/);
+    const tm = before.match(/([0-9]+\.?[0-9]*|[a-zA-Z][a-zA-Z0-9]*)$/);
+    if(gm){
+      const ps = s - gm[1].length;
+      const ins = `${name}(${gm[1].slice(1,-1)})`;
+      result = v.slice(0,ps) + ins + v.slice(s);
+      newPos = ps + ins.length;
+    } else if(tm){
+      const ps = s - tm[1].length;
+      const ins = `${name}(${tm[1]})`;
+      result = v.slice(0,ps) + ins + v.slice(s);
+      newPos = ps + ins.length;
+    } else {
+      result = v.slice(0,s) + `${name}()` + v.slice(e);
+      newPos = s + name.length + 1; // inside name(|)
+    }
+  }
+  inp.value = result; inp.focus(); inp.setSelectionRange(newPos, newPos); syncCalcDisplay();
+}
+function calcInsertSin(){calcInsertFunc('sin');}
+function calcInsertCos(){calcInsertFunc('cos');}
+function calcInsertTan(){calcInsertFunc('tan');}
+
 // ── PREVIEW RENDERER ────────────────────────────────────────
 function syncCalcDisplay(){
   const inp = document.getElementById('eqInput');
@@ -2397,14 +2503,19 @@ function syncCalcDisplay(){
   });
 }
 
+const PREVIEW_FN_NAMES = ['sqrt','sin','cos','tan'];
+function previewFnAt(s,i){
+  return PREVIEW_FN_NAMES.find(name=>s.slice(i,i+name.length+1)===name+'(')||null;
+}
 function parsePreviewTokens(s){
   const tokens = []; let i = 0;
   while(i < s.length){
-    // sqrt(...)
-    if(s.slice(i, i+5) === 'sqrt('){
-      const open = i+5; let d=1, j=open;
+    // sqrt(...) / sin(...) / cos(...) / tan(...)
+    const fn = previewFnAt(s,i);
+    if(fn){
+      const open = i+fn.length+1; let d=1, j=open;
       while(j<s.length && d>0){ if(s[j]==='(')d++; else if(s[j]===')')d--; j++; }
-      tokens.push({type:'sqrt', start:i, end:j, bodyStart:open, bodyEnd:j-1});
+      tokens.push({type:fn==='sqrt'?'sqrt':'trig', name:fn, start:i, end:j, bodyStart:open, bodyEnd:j-1});
       i=j; continue;
     }
     // (num)/(den) fraction
@@ -2420,7 +2531,7 @@ function parsePreviewTokens(s){
     }
     // plain text
     let j=i+1;
-    while(j<s.length && s.slice(j,j+5)!=='sqrt(' && s[j]!=='(') j++;
+    while(j<s.length && !previewFnAt(s,j) && s[j]!=='(') j++;
     tokens.push({type:'text', text:s.slice(i,j), start:i, end:j});
     i=j;
   }
@@ -2505,6 +2616,23 @@ function renderPreviewToken(tok, cursor, raw, inp){
       bd.innerHTML = '<span class="preview-cursor"></span>';
     } else { bd.innerHTML = body ? dispText(body) : '<span style="color:#444">□</span>'; }
     el.appendChild(tick); el.appendChild(bd);
+    el.onclick = () => go(body?tok.bodyEnd:tok.bodyStart);
+    return el;
+  }
+
+  if(tok.type==='trig'){
+    const body = raw.slice(tok.bodyStart, tok.bodyEnd);
+    const inFn = cursor > tok.bodyStart && cursor <= tok.bodyEnd;
+    const el = document.createElement('span'); el.className='ptrig';
+    const nameEl = document.createElement('span'); nameEl.className='ptrig-name'; nameEl.textContent=tok.name;
+    const bd = document.createElement('span'); bd.className='ptrig-body';
+    if(inFn && body!==''){
+      const rel = cursor - tok.bodyStart;
+      bd.innerHTML = '(' + dispText(body.slice(0,rel)) + '<span class="preview-cursor"></span>' + dispText(body.slice(rel)) + ')';
+    } else if(inFn){
+      bd.innerHTML = '(<span class="preview-cursor"></span>)';
+    } else { bd.innerHTML = '(' + (body ? dispText(body) : '<span style="color:#444">□</span>') + ')'; }
+    el.appendChild(nameEl); el.appendChild(bd);
     el.onclick = () => go(body?tok.bodyEnd:tok.bodyStart);
     return el;
   }
