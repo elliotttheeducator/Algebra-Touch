@@ -103,23 +103,31 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .side-tag{fill:var(--chalk3);font-family:'Inter',sans-serif;font-size:12px;font-style:italic;text-anchor:middle;}
 .tri-caption{font-size:.68rem;color:var(--chalk3);font-style:italic;}
 
-/* Step 1 (trig): identify which labelled side is which, before any ratio
-   talk — raw O/A/H recognition is its own sub-skill. */
-.identify-panel{display:none;flex-direction:column;gap:1.1rem;margin-top:1.6rem;align-items:center;}
-.identify-row{display:flex;flex-direction:column;align-items:center;gap:.5rem;}
-.identify-label{font-size:.9rem;color:var(--chalk2);}
-.identify-label strong{color:var(--cy);font-family:'Caveat',cursive;font-size:1.25rem;}
-.identify-btns{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;}
-.identify-btn{
-  background:rgba(0,0,0,.22);border:2px solid rgba(232,200,64,.3);border-radius:12px;
-  padding:.5rem 1.1rem;cursor:pointer;color:var(--chalk);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
-  transition:background .12s,border-color .12s,transform .1s,opacity .15s;
+/* Step 1 (trig): drag O/A/H bubbles onto the matching physical side of
+   the triangle, before any ratio talk — raw recognition is its own
+   sub-skill. Only the two sides this question actually uses ever accept
+   a label ("snap"); the diagram's vertex layout is fixed, so which
+   physical side is Opposite/Adjacent/Hypotenuse never changes — only
+   which two of the three are "live" for a given question. */
+.tri-stage{position:relative;}
+.tri-hitzone{position:absolute;pointer-events:auto;border-radius:8px;transition:background .12s;}
+.tri-hitzone.drop-ready{background:rgba(232,200,64,.18);}
+.identify-panel{display:none;flex-direction:column;gap:.8rem;margin-top:1rem;align-items:center;}
+.identify-hint{font-size:.82rem;color:var(--chalk2);text-align:center;}
+.label-tray{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;}
+.label-bubble{
+  background:rgba(0,0,0,.22);border:2px solid rgba(232,200,64,.45);border-radius:20px;
+  padding:.5rem 1.2rem;cursor:grab;color:var(--chalk);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  user-select:none;transition:opacity .15s;animation:pulse 1.6s ease-in-out infinite;
 }
-.identify-btn:hover{background:rgba(232,200,64,.12);transform:translateY(-1px);}
-.identify-btn.correct{border-color:#50c878;background:rgba(80,200,120,.15);color:#90e8a8;cursor:default;}
-.identify-btn.correct:hover{transform:none;}
-.identify-btn.wrong{border-color:#e05555;background:rgba(224,85,85,.15);animation:wiggle .35s ease;}
-.identify-btn:disabled{opacity:.35;cursor:default;pointer-events:none;}
+.label-bubble:active{cursor:grabbing;}
+.label-bubble.dragging{opacity:.25;}
+.label-bubble.placed{display:none;}
+.label-ghost{
+  position:fixed;pointer-events:none;z-index:9999;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  color:var(--wood3);background:var(--gold);border-radius:18px;padding:.5rem 1.2rem;transform:translate(-50%,-50%);
+}
+.side-tag.confirmed{fill:#90e8a8;font-style:normal;font-weight:700;}
 
 .ratio-picker{display:none;gap:.8rem;margin-top:1.6rem;flex-wrap:wrap;justify-content:center;}
 .ratio-btn,.form-btn{
@@ -238,16 +246,21 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .tips-list li.tips-aside{color:var(--chalk3);font-style:italic;}
 .tips-list li.tips-aside::before{content:'💡';background:transparent;border-color:transparent;font-size:1rem;}
 
-/* ── MODAL (reused pattern) ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:2000;display:flex;align-items:center;justify-content:center;animation:mfade .2s ease both;}
-@keyframes mfade{from{opacity:0}to{opacity:1}}
-@keyframes mpop{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:scale(1)}}
-.modal{background:var(--board2);border:2px solid rgba(80,200,120,.4);border-radius:18px;padding:2rem 2.4rem;max-width:360px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.65);animation:mpop .3s cubic-bezier(.175,.885,.32,1.4) both;}
-.modal-icon{font-size:2rem;margin-bottom:.7rem;}
-.modal-title{font-family:'Caveat',cursive;font-size:1.55rem;font-weight:700;color:var(--chalk);margin-bottom:.45rem;}
-.modal-msg{font-size:.88rem;color:var(--chalk2);line-height:1.58;margin-bottom:1rem;}
-.modal-ok{background:var(--gold);color:var(--wood3);border:none;padding:9px 30px;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;letter-spacing:.05em;}
-.modal-ok:hover{filter:brightness(1.1);}
+/* ── TOAST ── (replaces the old correct-answer modal popup entirely — a
+   modal blocking the board felt heavier than it needed to be, and this
+   same mechanism now also carries every "not quite" moment, so right
+   and wrong feedback read consistently.) */
+.toast{
+  position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(8px);
+  background:rgba(15,22,15,.96);border:2px solid rgba(255,255,255,.16);border-radius:12px;
+  padding:10px 22px;font-family:'Caveat',cursive;font-size:1.2rem;font-weight:600;color:var(--chalk);
+  box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;pointer-events:none;
+  transition:opacity .22s ease,transform .22s ease;z-index:3000;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:#50c878;color:#90e8a8;}
+.toast.err{border-color:#e05555;color:#f09090;}
+.wobble{animation:wiggle .35s ease;}
 
 /* ── TRAY ── */
 .chalk-tray{background:var(--board3);border-top:3px solid var(--wood3);padding:.55rem 1.2rem;display:flex;flex-direction:column;gap:.3rem;position:relative;z-index:5;}
@@ -300,27 +313,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <div class="book-hint">📓 <strong>Try it in your exercise book first.</strong> Use this tool if you get stuck, or to check your working once you've had a go.</div>
 
       <div class="tri-wrap">
-        <svg viewBox="0 0 420 260" class="tri-svg" id="triSvg"></svg>
+        <div class="tri-stage" id="triStage">
+          <svg viewBox="0 0 420 260" class="tri-svg" id="triSvg"></svg>
+          <div class="tri-hitzone" id="hitOpp" data-side="opp"></div>
+          <div class="tri-hitzone" id="hitAdj" data-side="adj"></div>
+          <div class="tri-hitzone" id="hitHyp" data-side="hyp"></div>
+        </div>
         <div class="tri-caption">(diagram not to scale)</div>
       </div>
 
       <div class="identify-panel" id="identifyPanel">
-        <div class="identify-row">
-          <span class="identify-label">The side labelled <strong id="idKnownLabel">9</strong> is the:</span>
-          <div class="identify-btns" data-role="known">
-            <button class="identify-btn" data-side="opp" type="button">Opposite</button>
-            <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
-            <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
-          </div>
-        </div>
-        <div class="identify-row">
-          <span class="identify-label">The side labelled <strong>x</strong> is the:</span>
-          <div class="identify-btns" data-role="unknown">
-            <button class="identify-btn" data-side="opp" type="button">Opposite</button>
-            <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
-            <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
-          </div>
-        </div>
+        <div class="identify-hint">Drag each label onto the matching side of the triangle.</div>
+        <div class="label-tray" id="labelTray"></div>
       </div>
 
       <div class="ratio-picker" id="ratioPicker">
@@ -360,6 +364,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
         <span><span id="answerVarLabel">x</span> =</span>
         <input type="text" inputmode="decimal" id="answerInput" placeholder="?">
         <button class="btn" id="checkBtn" type="button">Check</button>
+        <button class="btn" id="nextInlineBtn" type="button" style="display:none;">🎲 Next Question</button>
         <div class="answer-hint" id="answerHintText">Round to 2 decimal places.</div>
       </div>
 
@@ -387,14 +392,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   </div>
 </div>
 
-<div class="modal-overlay" id="correctModal" style="display:none;">
-  <div class="modal">
-    <div class="modal-icon">📐</div>
-    <div class="modal-title">Correct!</div>
-    <div class="modal-msg" id="correctMsg">Nice work — that's exactly right.</div>
-    <button class="modal-ok" id="correctModalOk" type="button">Next Question</button>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
 <div class="chalk-tray">
   <div class="tray-status">
@@ -570,38 +568,121 @@ function renderPythagTriangle(scn){
   document.getElementById('triSvg').innerHTML=svg;
 }
 
-// ── TRIG STEP 1: IDENTIFY THE SIDES ──
+// ── TRIG STEP 1: IDENTIFY THE SIDES (drag O/A/H bubbles onto the triangle) ──
 // Raw O/A/H recognition, checked independently of ratio choice — a
 // student can only get the ratio right once they know what they're
-// looking at.
+// looking at. The triangle's vertex layout never changes (right angle at
+// A, θ at B), so which physical side is which category is fixed — a
+// bubble only ever needs to match its own category against the side it's
+// dropped on. Only the two sides this question actually labels (known
+// and unknown) accept a drop at all; the third side always rejects.
+const SIDE_NAME={opp:'Opposite',adj:'Adjacent',hyp:'Hypotenuse'};
+const TRI_A={x:70,y:210},TRI_B={x:370,y:210},TRI_C={x:70,y:40};
 function resetIdentifyPanel(){
-  document.querySelectorAll('.identify-btn').forEach(b=>{b.classList.remove('correct','wrong');b.disabled=false;});
+  const tray=document.getElementById('labelTray');
+  tray.innerHTML='';
+  const shuffled=['opp','adj','hyp'].sort(()=>Math.random()-0.5);
+  shuffled.forEach(s=>{
+    const b=document.createElement('div');
+    b.className='label-bubble';
+    b.textContent=SIDE_NAME[s];
+    b.onmousedown=e=>startLabelDrag(e,b,s);
+    tray.appendChild(b);
+  });
+  document.querySelectorAll('.tri-hitzone').forEach(z=>z.classList.remove('drop-ready'));
 }
-document.querySelectorAll('.identify-btn').forEach(b=>{
-  b.onclick=()=>{
-    if(kind!=='trig'||phase!=='identify')return;
-    const role=b.closest('.identify-btns').dataset.role; // 'known' | 'unknown'
-    if(role==='known'&&idKnownCorrect)return;
-    if(role==='unknown'&&idUnknownCorrect)return;
-    const expected=role==='known'?scenario.knownSide:scenario.unknownSide;
-    if(b.dataset.side===expected){
-      b.classList.add('correct');
-      b.closest('.identify-btns').querySelectorAll('.identify-btn').forEach(sib=>{if(sib!==b)sib.disabled=true;});
-      if(role==='known')idKnownCorrect=true;else idUnknownCorrect=true;
-      if(idKnownCorrect&&idUnknownCorrect){
-        phase='ratio';
-        setStatus('ok','Nice — now pick the matching ratio.');
-        document.getElementById('ratioPicker').style.display='flex';
-      }else{
-        setStatus('ok','Correct — now the other side.');
-      }
-    }else{
-      b.classList.add('wrong');
-      setTimeout(()=>b.classList.remove('wrong'),350);
-      setStatus('err',"Not quite — the Hypotenuse is opposite the right angle; Opposite is across from the marked angle; Adjacent is the side touching it.");
-    }
+// Hit-zones are positioned in real pixels from the rendered SVG's own
+// bounding box + the fixed viewBox coordinates, rather than static CSS
+// percentages — the SVG is responsively sized (width:min(90vw,420px)),
+// so only a live scale factor keeps the invisible drop targets aligned
+// with the actual drawn triangle edges.
+function positionTriHitZones(){
+  const svg=document.getElementById('triSvg'),stage=document.getElementById('triStage');
+  const svgRect=svg.getBoundingClientRect(),stageRect=stage.getBoundingClientRect();
+  if(!svgRect.width||!stageRect.width)return;
+  const sx=svgRect.width/420,sy=svgRect.height/260;
+  const offX=svgRect.left-stageRect.left,offY=svgRect.top-stageRect.top;
+  placeHitZone('hitAdj',TRI_A,TRI_B,sx,sy,offX,offY);
+  placeHitZone('hitOpp',TRI_A,TRI_C,sx,sy,offX,offY);
+  placeHitZone('hitHyp',TRI_B,TRI_C,sx,sy,offX,offY);
+}
+function placeHitZone(id,p1,p2,sx,sy,offX,offY){
+  const el=document.getElementById(id);
+  const midX=(p1.x+p2.x)/2,midY=(p1.y+p2.y)/2;
+  const lenPx=Math.hypot((p2.x-p1.x)*sx,(p2.y-p1.y)*sy);
+  const angle=Math.atan2((p2.y-p1.y)*sy,(p2.x-p1.x)*sx)*180/Math.PI;
+  const thickPx=34*sy;
+  const cx=offX+midX*sx,cy=offY+midY*sy;
+  el.style.left=(cx-lenPx/2)+'px';
+  el.style.top=(cy-thickPx/2)+'px';
+  el.style.width=lenPx+'px';
+  el.style.height=thickPx+'px';
+  el.style.transform=`rotate(${angle}deg)`;
+}
+window.addEventListener('resize',()=>{if(phase==='identify')positionTriHitZones();});
+function startLabelDrag(e,bubble,bubbleSide){
+  e.preventDefault();
+  const ghost=document.createElement('div');
+  ghost.className='label-ghost';
+  ghost.textContent=bubble.textContent;
+  ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
+  document.body.appendChild(ghost);
+  bubble.classList.add('dragging');
+  const zones=document.querySelectorAll('.tri-hitzone');
+  const mm=ev=>{
+    ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';
+    const under=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.tri-hitzone');
+    zones.forEach(z=>z.classList.toggle('drop-ready',z===under));
   };
-});
+  const mu=ev=>{
+    document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);
+    ghost.remove();
+    bubble.classList.remove('dragging');
+    zones.forEach(z=>z.classList.remove('drop-ready'));
+    const target=document.elementFromPoint(ev.clientX,ev.clientY)?.closest('.tri-hitzone');
+    if(target)handleLabelDrop(target.dataset.side,bubble,bubbleSide);
+  };
+  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+}
+function handleLabelDrop(dropSide,bubble,bubbleSide){
+  const isActiveSide=dropSide===scenario.knownSide||dropSide===scenario.unknownSide;
+  if(!isActiveSide){
+    wobble(bubble);
+    setStatus('err',"That side isn't part of this question — not useful here.");
+    return;
+  }
+  const alreadyLabelled=(dropSide===scenario.knownSide&&idKnownCorrect)||(dropSide===scenario.unknownSide&&idUnknownCorrect);
+  if(alreadyLabelled){
+    wobble(bubble);
+    setStatus('err','That side is already labelled — try the other one.');
+    return;
+  }
+  if(bubbleSide!==dropSide){
+    wobble(bubble);
+    setStatus('err',"Not quite — think about what's across from the angle versus what's touching it.");
+    return;
+  }
+  bubble.classList.add('placed');
+  addSvgSideTag(dropSide,SIDE_NAME[bubbleSide]);
+  if(dropSide===scenario.knownSide)idKnownCorrect=true;
+  if(dropSide===scenario.unknownSide)idUnknownCorrect=true;
+  if(idKnownCorrect&&idUnknownCorrect){
+    phase='ratio';
+    setStatus('ok','Nice — now pick the matching ratio.');
+    document.getElementById('identifyPanel').style.display='none';
+    document.getElementById('ratioPicker').style.display='flex';
+  }else{
+    setStatus('ok','Correct — now label the other side.');
+  }
+}
+function addSvgSideTag(side,text){
+  const pos={opp:{x:34,y:150},adj:{x:220,y:255},hyp:{x:245,y:129}}[side];
+  const el=document.createElementNS('http://www.w3.org/2000/svg','text');
+  el.setAttribute('x',pos.x);el.setAttribute('y',pos.y);
+  el.setAttribute('class','side-tag confirmed');
+  el.textContent=text;
+  document.getElementById('triSvg').appendChild(el);
+}
 
 // ── TRIG STEP 2: RATIO PICKER ──
 function resetRatioPicker(){
@@ -698,6 +779,7 @@ function handleDrop(zone,chip,isX){
       setStatus('ok','Placed correctly — one more to go.');
     }
   }else{
+    wobble(chip);
     setStatus('err',"That doesn't go there — check SOH/CAH/TOA again for what's on top.");
   }
 }
@@ -728,8 +810,10 @@ function renderEquation(){
   }else if(moveStep===1&&!scenario.xIsNumerator){
     html=`<div class="eq-line chalkin"><span class="eq-lhs" id="eqLHS"><span class="term x-term">x</span><span class="eq-times">×</span>${trigChipHTML(true)}</span><span class="eq-eq">=</span><span class="eq-rhs" id="eqRHS">${scenario.knownVal}</span></div>`;
   }else if(moveStep===2){
-    html=`<div class="eq-line chalkin"><span class="eq-lhs" id="eqLHS"><span class="term x-term">x</span></span><span class="eq-eq">=</span><span class="eq-rhs" id="eqRHS">${scenario.knownVal}<span class="eq-times">÷</span>${trigChipHTML(false)}</span></div>`;
-    recordStep(`x = ${scenario.knownVal} ÷ ${ratioLabel()}`);
+    // A final answer that's a division reads as an actual fraction bar
+    // (matching how the ratio itself was shown), not an inline ÷ sign.
+    html=`<div class="eq-line chalkin"><span class="eq-lhs" id="eqLHS"><span class="term x-term">x</span></span><span class="eq-eq">=</span><span class="eq-rhs" id="eqRHS"><span class="frac"><span class="frac-top">${scenario.knownVal}</span><span class="frac-line"></span><span class="frac-bot">${trigChipHTML(false)}</span></span></span></div>`;
+    recordStep(`x = ${scenario.knownVal} ⁄ ${ratioLabel()}`);
     finishToAnswer();
   }
   stage.innerHTML=html;
@@ -819,7 +903,7 @@ document.getElementById('subCheckBtn').onclick=()=>{
   if(kind!=='pythag'||phase!=='pythag-substitute')return;
   const v1=parseFloat(document.getElementById('sub1').value);
   const v2=parseFloat(document.getElementById('sub2').value);
-  if(isNaN(v1)||isNaN(v2)){setStatus('err','Type both numbers first.');return;}
+  if(isNaN(v1)||isNaN(v2)){wobble(document.getElementById('pythagSubLine'));setStatus('err','Type both numbers first.');return;}
   const correct=scenario.form==='sum'
     ?((v1===scenario.a&&v2===scenario.b)||(v1===scenario.b&&v2===scenario.a))
     :(v1===scenario.c&&v2===scenario.b);
@@ -830,6 +914,7 @@ document.getElementById('subCheckBtn').onclick=()=>{
     setStatus('ok','Substituted correctly! Now solve for the unknown.');
     showPythagSolve(v1,v2);
   }else{
+    wobble(document.getElementById('pythagSubLine'));
     setStatus('err',"Check the values — they don't match what's given in the triangle.");
   }
 };
@@ -854,7 +939,7 @@ function showPythagSolve(v1,v2){
 // ── ANSWER CHECK (shared by trig and Pythagoras) ──
 function checkAnswer(){
   const val=parseFloat(document.getElementById('answerInput').value);
-  if(isNaN(val)){setStatus('err','Type a number first.');return;}
+  if(isNaN(val)){wobble(document.getElementById('answerInput'));setStatus('err','Type a number first.');return;}
   const trueVal=kind==='trig'?scenario.trueX:scenario.trueVal;
   const varName=kind==='trig'?'x':scenario.unknownVar;
   // "Round to 2 decimal places" means exactly that — match the value at
@@ -863,12 +948,15 @@ function checkAnswer(){
   const trueRounded=Math.round(trueVal*100)/100;
   const valRounded=Math.round(val*100)/100;
   if(valRounded===trueRounded){
-    setStatus('ok','Correct!');
-    document.getElementById('correctMsg').textContent=`${varName} ≈ ${trueVal.toFixed(2)} — nice work.`;
+    setStatus('ok',`Correct! ${varName} ≈ ${trueVal.toFixed(2)} — nice work.`);
+    showToast(`🎉 Correct! ${varName} ≈ ${trueVal.toFixed(2)}`,'ok');
     recordStep(`${varName} = ${trueVal.toFixed(2)}`);
-    document.getElementById('correctModal').style.display='flex';
+    document.getElementById('answerInput').disabled=true;
+    document.getElementById('checkBtn').style.display='none';
+    document.getElementById('nextInlineBtn').style.display='inline-block';
     return;
   }
+  wobble(document.getElementById('answerInput'));
   if(kind==='trig'){
     const radianVal=scenario.xIsNumerator
       ?scenario.knownVal*trigFnRadianMistake(scenario.ratio,scenario.angle)
@@ -890,6 +978,24 @@ function checkAnswer(){
 }
 document.getElementById('checkBtn').onclick=checkAnswer;
 document.getElementById('answerInput').addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer();});
+document.getElementById('nextInlineBtn').onclick=loadNext;
+
+// ── TOAST + WOBBLE ── (every wrong step gets both; setStatus('err',…)
+// triggers the toast automatically so call sites don't need to remember to)
+let toastTimer=null;
+function showToast(msg,kindStyle){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show'+(kindStyle?` ${kindStyle}`:'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+function wobble(el){
+  if(!el)return;
+  el.classList.remove('wobble');
+  void el.offsetWidth; // restart the animation even if it's still mid-run
+  el.classList.add('wobble');
+}
 
 // ── STATUS ──
 function setStatus(kindStyle,msg){
@@ -897,6 +1003,7 @@ function setStatus(kindStyle,msg){
   dot.className='s-dot'+(kindStyle==='ok'?' ok':kindStyle==='err'?' err':'');
   txt.className='s-txt'+(kindStyle==='ok'?' ok':kindStyle==='err'?' err':'');
   txt.textContent=msg;
+  if(kindStyle==='err')showToast(msg,'err');
 }
 
 // ── QUESTION LIFECYCLE ──
@@ -909,6 +1016,9 @@ function hideAllPanels(){
   document.getElementById('pythagSubstitute').style.display='none';
   document.getElementById('pythagSolve').style.display='none';
   document.getElementById('answerRow').style.display='none';
+  document.getElementById('answerInput').disabled=false;
+  document.getElementById('checkBtn').style.display='inline-block';
+  document.getElementById('nextInlineBtn').style.display='none';
 }
 // "No training wheels" — skip straight to the answer box for a student
 // who's already solved it in their book and just wants it checked.
@@ -940,9 +1050,9 @@ function loadTrigScenario(scn){
   hideAllPanels();
   if(quickCheck){showAnswerOnly('x');return;}
   phase='identify';
-  document.getElementById('idKnownLabel').textContent=scenario.knownVal;
   document.getElementById('identifyPanel').style.display='flex';
-  setStatus('','Which side is the labelled value, and which is x?');
+  requestAnimationFrame(positionTriHitZones);
+  setStatus('','Drag each label onto the matching side of the triangle.');
 }
 function loadPythagScenario(scn){
   kind='pythag';
@@ -990,10 +1100,6 @@ document.getElementById('cLoadBtn').onclick=()=>{
   const rel=deriveRelation(knownSide,unknownSide);
   if(!rel){setStatus('err','The known and unknown sides must be different.');return;}
   loadTrigScenario({...rel,angle,knownVal,trueX:computeX(rel,angle,knownVal)});
-};
-document.getElementById('correctModalOk').onclick=()=>{
-  document.getElementById('correctModal').style.display='none';
-  loadNext();
 };
 
 // ── TIPS TOGGLE ──
