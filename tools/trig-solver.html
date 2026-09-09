@@ -31,6 +31,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .btn.small{padding:6px 14px;font-size:.72rem;}
 .spacer{flex:1;}
 
+.mode-switch{display:flex;background:rgba(0,0,0,.28);border-radius:20px;padding:3px;gap:2px;}
+.ms-btn{background:transparent;border:none;color:var(--chalk3);padding:6px 14px;border-radius:16px;font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s;}
+.ms-btn.active{background:var(--gold);color:var(--wood3);}
+.ms-btn:not(.active):hover{color:var(--chalk);background:rgba(255,255,255,.08);}
+
 .custom-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:0 0 .75rem;font-size:.8rem;color:var(--chalk2);}
 .custom-row label{display:flex;align-items:center;gap:.35rem;}
 .custom-row input,.custom-row select{
@@ -43,7 +48,34 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 /* ── BOARD ── */
 .blackboard{flex:1;display:flex;flex-direction:column;background:var(--board);position:relative;overflow:hidden;min-height:500px;}
 .blackboard::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(180deg,transparent 0,transparent 47px,rgba(255,255,255,0.02) 48px);}
-.board-main{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;padding:2rem 1.5rem;overflow:auto;}
+.board-row{flex:1;display:flex;align-items:stretch;overflow:hidden;}
+
+/* Working-out panel — same "lined notebook" pattern as the Equation
+   Balancer, so the record of how a question was solved lives alongside
+   the board, not just a transient status line. */
+.workbook{
+  width:340px;flex-shrink:0;background:#f4efe0;
+  border-right:5px solid var(--wood3);box-shadow:6px 0 26px rgba(0,0,0,.35);
+  padding:1.2rem 1.4rem 1.4rem;overflow-y:auto;position:relative;z-index:3;
+  background-image:repeating-linear-gradient(180deg,transparent 0,transparent 40px,rgba(50,90,170,.24) 41px);
+}
+.workbook-title{
+  font-family:'Caveat',cursive;font-weight:700;font-size:1.7rem;color:var(--wood2);
+  margin-bottom:.4rem;padding-bottom:.4rem;border-bottom:3px solid rgba(50,90,170,.35);
+}
+.step-history{display:flex;flex-direction:column;gap:.5rem;position:relative;z-index:1;}
+.step-row{display:flex;align-items:baseline;gap:.5rem;font-family:'Caveat',cursive;color:rgba(22,33,62,.55);font-size:1.15rem;line-height:1.35;}
+.step-row.current{color:#16213e;font-weight:700;}
+.step-num{color:rgba(22,33,62,.4);font-size:.68em;min-width:1.3em;flex-shrink:0;}
+.step-eq{word-break:break-word;}
+
+.board-main{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;padding:1.6rem 1.5rem;overflow:auto;min-width:0;}
+
+.book-hint{
+  font-size:.78rem;color:var(--chalk3);text-align:center;max-width:520px;margin-bottom:1rem;
+  background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.5rem 1rem;
+}
+.book-hint strong{color:var(--cy);font-weight:600;}
 
 .tri-wrap{display:flex;flex-direction:column;align-items:center;gap:.3rem;}
 .tri-svg{width:min(90vw,420px);height:auto;}
@@ -51,13 +83,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .tri-fill{fill:rgba(240,237,228,.04);}
 .right-angle-mark{stroke:var(--chalk3);stroke-width:2;fill:none;}
 .angle-arc{stroke:var(--gold);stroke-width:2;fill:none;}
-.angle-label{fill:var(--gold);font-family:'Caveat',cursive;font-weight:700;font-size:22px;}
+/* Upright serif, not the cursive body font — this is a precise data
+   label, not a handwritten flourish, and needs to read cleanly at a
+   glance regardless of whether the angle is one or two digits. */
+.angle-label{fill:var(--gold);font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:22px;text-anchor:middle;}
 .side-label{fill:var(--chalk);font-family:Georgia,'Times New Roman',serif;font-size:24px;text-anchor:middle;}
 .side-label.unknown{fill:var(--cy);font-weight:700;}
+.side-tag{fill:var(--chalk3);font-family:'Inter',sans-serif;font-size:12px;font-style:italic;text-anchor:middle;}
 .tri-caption{font-size:.68rem;color:var(--chalk3);font-style:italic;}
 
-/* Step 1: identify which labelled side is which, before any ratio talk —
-   raw O/A/H recognition is its own sub-skill. */
+/* Step 1 (trig): identify which labelled side is which, before any ratio
+   talk — raw O/A/H recognition is its own sub-skill. */
 .identify-panel{display:none;flex-direction:column;gap:1.1rem;margin-top:1.6rem;align-items:center;}
 .identify-row{display:flex;flex-direction:column;align-items:center;gap:.5rem;}
 .identify-label{font-size:.9rem;color:var(--chalk2);}
@@ -75,21 +111,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .identify-btn:disabled{opacity:.35;cursor:default;pointer-events:none;}
 
 .ratio-picker{display:none;gap:.8rem;margin-top:1.6rem;flex-wrap:wrap;justify-content:center;}
-.ratio-btn{
+.ratio-btn,.form-btn{
   background:rgba(0,0,0,.22);border:2px solid rgba(232,200,64,.3);border-radius:14px;
   padding:.7rem 1.3rem;cursor:pointer;text-align:center;transition:background .12s,border-color .12s,transform .1s;
-  color:var(--chalk);
+  color:var(--chalk);font-family:Georgia,'Times New Roman',serif;
 }
-.ratio-btn:hover{background:rgba(232,200,64,.12);transform:translateY(-1px);}
+.ratio-btn:hover,.form-btn:hover{background:rgba(232,200,64,.12);transform:translateY(-1px);}
 .ratio-btn .ratio-name{display:block;font-family:'Caveat',cursive;font-weight:700;font-size:1.4rem;color:var(--gold);}
-.ratio-btn .ratio-sub{display:block;font-size:.72rem;color:var(--chalk3);margin-top:.15rem;}
-.ratio-btn.correct{border-color:#50c878;background:rgba(80,200,120,.15);}
-.ratio-btn.wrong{border-color:#e05555;background:rgba(224,85,85,.15);animation:wiggle .35s ease;}
+.ratio-btn .ratio-sub{display:block;font-size:.72rem;color:var(--chalk3);margin-top:.15rem;font-family:'Inter',sans-serif;}
+.ratio-btn.correct,.form-btn.correct{border-color:#50c878;background:rgba(80,200,120,.15);}
+.ratio-btn.wrong,.form-btn.wrong{border-color:#e05555;background:rgba(224,85,85,.15);animation:wiggle .35s ease;}
+.form-btn{font-size:1.15rem;}
 @keyframes wiggle{0%,100%{transform:translateX(0);}20%{transform:translateX(-4px);}50%{transform:translateX(4px);}75%{transform:translateX(-2px);}}
 
-/* Step 3: drag each value into the ratio template — the physical act of
-   placing "which value is on top" reinforces the SOH/CAH/TOA definition
-   more than just having the substituted equation appear pre-filled. */
+/* Step 3 (trig): drag each value into the ratio template — the physical
+   act of placing "which value is on top" reinforces the SOH/CAH/TOA
+   definition more than just having the substituted equation appear
+   pre-filled. */
 .build-panel{display:none;flex-direction:column;align-items:center;gap:1.5rem;margin-top:1.8rem;}
 .build-tray{display:flex;gap:1.2rem;min-height:3.6rem;align-items:center;}
 .build-chip{
@@ -120,7 +158,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 @keyframes chalkin{0%{opacity:0;filter:blur(4px);transform:scale(.9)}100%{opacity:1;filter:blur(0);transform:scale(1)}}
 .eq-line.chalkin{animation:chalkin .35s ease-out both;}
 .eq-eq{color:var(--chalk2);}
+.eq-op{color:var(--chalk2);}
 .eq-times{color:var(--chalk2);font-size:.85em;}
+/* Step 4 (trig): the last leg is dragged, not clicked — a chip only ever
+   moves as a single physical action across the equals sign, matching
+   the drag conventions everywhere else in this app. */
+.eq-lhs,.eq-rhs{display:inline-flex;align-items:center;gap:.9rem;padding:.15em .4em;border-radius:10px;transition:background .15s,outline-color .15s;outline:2px dashed transparent;}
+.eq-lhs.drop-ready,.eq-rhs.drop-ready{outline-color:var(--gold);background:rgba(232,200,64,.1);}
 /* The trig term is rendered as a single, non-splittable chip everywhere
    it appears — never separate spans for the function name and the angle
    — so it can only ever move as one unit, the same way it behaves
@@ -129,16 +173,31 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   background:rgba(232,200,64,.1);border:1.5px solid rgba(232,200,64,.35);border-radius:10px;
   padding:.15em .5em;white-space:nowrap;
 }
-.trig-chip.movable{cursor:pointer;animation:pulse 1.4s ease-in-out infinite;}
+.trig-chip.movable{cursor:grab;animation:pulse 1.4s ease-in-out infinite;}
 .trig-chip.movable:hover{background:rgba(232,200,64,.22);}
+.trig-chip.dragging{opacity:.25;}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,200,64,.35);}50%{box-shadow:0 0 0 8px rgba(232,200,64,0);}}
 .frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15;}
 .frac-line{width:100%;height:2px;background:currentColor;margin:.12em 0;}
 .frac .term{padding:.05em .3em;}
-.term.movable{cursor:pointer;border-radius:6px;animation:pulse 1.4s ease-in-out infinite;}
+.term.movable{cursor:grab;border-radius:6px;animation:pulse 1.4s ease-in-out infinite;}
 .term.movable:hover{background:rgba(232,200,64,.18);}
+.term.dragging{opacity:.25;}
 .term.x-term{color:var(--cy);font-weight:700;}
 .eq-note{font-size:.74rem;color:var(--chalk3);margin-top:.7rem;text-align:center;font-style:italic;}
+
+/* Pythagoras: pick form → substitute (type) → solve */
+.pythag-form-picker{display:none;gap:1rem;margin-top:1.6rem;flex-wrap:wrap;justify-content:center;}
+.pythag-substitute,.pythag-solve{display:none;flex-direction:column;align-items:center;gap:1rem;margin-top:1.8rem;}
+.pythag-eq-line{display:flex;align-items:center;gap:.5rem;font-family:Georgia,'Times New Roman',serif;font-size:clamp(1.4rem,3.2vw,2.1rem);color:var(--chalk);flex-wrap:wrap;justify-content:center;}
+.pythag-var{color:var(--cy);font-weight:700;}
+.sub-input{
+  background:rgba(0,0,0,.3);border:none;border-bottom:2.5px solid rgba(240,237,228,.4);
+  color:var(--chalk);font-family:Georgia,'Times New Roman',serif;font-size:1em;line-height:1;
+  width:2ch;text-align:center;outline:none;padding:0 .1em;transition:border-color .15s;
+}
+.sub-input::placeholder{color:rgba(240,237,228,.3);}
+.sub-input:focus{border-color:var(--gold);}
 
 .answer-row{display:none;margin-top:1.4rem;align-items:center;gap:.6rem;flex-wrap:wrap;justify-content:center;}
 .answer-row input{
@@ -151,10 +210,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 
 .controls-row{display:flex;align-items:center;justify-content:center;gap:.7rem;margin-top:1.8rem;flex-wrap:wrap;}
 
-/* Tips panel — same pattern as the Reaction Balancer's: a fixed method,
-   hidden by default so the board stays uncluttered. */
+/* Tips panel — a fixed reference sheet, hidden by default so the board
+   stays uncluttered until asked for. */
 .tips-panel{display:none;margin-top:1.4rem;background:rgba(0,0,0,.24);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:1.2rem 1.7rem;width:100%;max-width:560px;}
 .tips-title{font-family:'Caveat',cursive;font-weight:700;font-size:1.35rem;color:var(--cy);margin-bottom:.6rem;}
+.tips-title:not(:first-child){margin-top:1.1rem;}
 .tips-list{list-style:none;counter-reset:tip;display:flex;flex-direction:column;gap:.65rem;}
 .tips-list li{counter-increment:tip;display:flex;gap:.7rem;font-size:.86rem;color:var(--chalk2);line-height:1.5;}
 .tips-list li::before{
@@ -193,11 +253,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   <div class="wood-inner">
     <a class="btn ghost" href="../index.html">🏠 Hub</a>
     <div class="brand">📐 Trig<em>Solver</em></div>
+    <div class="mode-switch" id="modeSwitch">
+      <button class="ms-btn" data-mode="trig" type="button">Trig</button>
+      <button class="ms-btn" data-mode="pythag" type="button">Pythagoras</button>
+      <button class="ms-btn active" data-mode="mixed" type="button">Mixed</button>
+    </div>
     <span class="spacer"></span>
     <button class="btn" id="newBtn" type="button">🎲 New Question</button>
   </div>
   <div class="custom-row">
-    <span>Or set your own:</span>
+    <span>Or set your own trig question:</span>
     <label>Angle <input type="number" id="cAngle" min="1" max="89" value="37">°</label>
     <label>Known side
       <select id="cKnownSide"><option value="opp">Opposite</option><option value="adj">Adjacent</option><option value="hyp" selected>Hypotenuse</option></select>
@@ -211,71 +276,98 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 </div>
 
 <div class="blackboard">
-  <div class="board-main">
-    <div class="tri-wrap">
-      <svg viewBox="0 0 420 260" class="tri-svg" id="triSvg"></svg>
-      <div class="tri-caption">(diagram not to scale)</div>
+  <div class="board-row">
+    <div class="workbook" id="workbook">
+      <div class="workbook-title">Working Out</div>
+      <div class="step-history" id="stepHistory"></div>
     </div>
+    <div class="board-main">
+      <div class="book-hint">📓 <strong>Try it in your exercise book first.</strong> Use this tool if you get stuck, or to check your working once you've had a go.</div>
 
-    <div class="identify-panel" id="identifyPanel">
-      <div class="identify-row">
-        <span class="identify-label">The side labelled <strong id="idKnownLabel">9</strong> is the:</span>
-        <div class="identify-btns" data-role="known">
-          <button class="identify-btn" data-side="opp" type="button">Opposite</button>
-          <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
-          <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
+      <div class="tri-wrap">
+        <svg viewBox="0 0 420 260" class="tri-svg" id="triSvg"></svg>
+        <div class="tri-caption">(diagram not to scale)</div>
+      </div>
+
+      <div class="identify-panel" id="identifyPanel">
+        <div class="identify-row">
+          <span class="identify-label">The side labelled <strong id="idKnownLabel">9</strong> is the:</span>
+          <div class="identify-btns" data-role="known">
+            <button class="identify-btn" data-side="opp" type="button">Opposite</button>
+            <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
+            <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
+          </div>
+        </div>
+        <div class="identify-row">
+          <span class="identify-label">The side labelled <strong>x</strong> is the:</span>
+          <div class="identify-btns" data-role="unknown">
+            <button class="identify-btn" data-side="opp" type="button">Opposite</button>
+            <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
+            <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
+          </div>
         </div>
       </div>
-      <div class="identify-row">
-        <span class="identify-label">The side labelled <strong>x</strong> is the:</span>
-        <div class="identify-btns" data-role="unknown">
-          <button class="identify-btn" data-side="opp" type="button">Opposite</button>
-          <button class="identify-btn" data-side="adj" type="button">Adjacent</button>
-          <button class="identify-btn" data-side="hyp" type="button">Hypotenuse</button>
+
+      <div class="ratio-picker" id="ratioPicker">
+        <button class="ratio-btn" data-r="sin" type="button"><span class="ratio-name">SOH</span><span class="ratio-sub">sin θ = O ⁄ H</span></button>
+        <button class="ratio-btn" data-r="cos" type="button"><span class="ratio-name">CAH</span><span class="ratio-sub">cos θ = A ⁄ H</span></button>
+        <button class="ratio-btn" data-r="tan" type="button"><span class="ratio-name">TOA</span><span class="ratio-sub">tan θ = O ⁄ A</span></button>
+      </div>
+
+      <div class="build-panel" id="buildPanel">
+        <div class="build-tray" id="buildTray"></div>
+        <div class="build-template">
+          <span class="trig-chip" id="buildTrigChip"></span>
+          <span class="eq-eq">=</span>
+          <span class="frac">
+            <span class="drop-zone" id="dropNum" data-slot="num">?</span>
+            <span class="frac-line"></span>
+            <span class="drop-zone" id="dropDen" data-slot="den">?</span>
+          </span>
         </div>
       </div>
-    </div>
 
-    <div class="ratio-picker" id="ratioPicker">
-      <button class="ratio-btn" data-r="sin" type="button"><span class="ratio-name">SOH</span><span class="ratio-sub">sin θ = O ⁄ H</span></button>
-      <button class="ratio-btn" data-r="cos" type="button"><span class="ratio-name">CAH</span><span class="ratio-sub">cos θ = A ⁄ H</span></button>
-      <button class="ratio-btn" data-r="tan" type="button"><span class="ratio-name">TOA</span><span class="ratio-sub">tan θ = O ⁄ A</span></button>
-    </div>
+      <div class="eq-stage" id="eqStage"></div>
 
-    <div class="build-panel" id="buildPanel">
-      <div class="build-tray" id="buildTray"></div>
-      <div class="build-template">
-        <span class="trig-chip" id="buildTrigChip"></span>
-        <span class="eq-eq">=</span>
-        <span class="frac">
-          <span class="drop-zone" id="dropNum" data-slot="num">?</span>
-          <span class="frac-line"></span>
-          <span class="drop-zone" id="dropDen" data-slot="den">?</span>
-        </span>
+      <div class="pythag-form-picker" id="pythagFormPicker">
+        <button class="form-btn" data-form="sum" type="button">c² = a² + b²</button>
+        <button class="form-btn" data-form="diff" type="button">a² = c² − b²</button>
       </div>
-    </div>
+      <div class="pythag-substitute" id="pythagSubstitute">
+        <div class="pythag-eq-line" id="pythagSubLine"></div>
+        <button class="btn ghost small" id="subCheckBtn" type="button">Check</button>
+      </div>
+      <div class="pythag-solve" id="pythagSolve">
+        <div class="pythag-eq-line" id="pythagSolveLine"></div>
+      </div>
 
-    <div class="eq-stage" id="eqStage"></div>
+      <div class="answer-row" id="answerRow">
+        <span><span id="answerVarLabel">x</span> =</span>
+        <input type="text" inputmode="decimal" id="answerInput" placeholder="?">
+        <button class="btn" id="checkBtn" type="button">Check</button>
+        <div class="answer-hint" id="answerHintText">Round to 2 decimal places.</div>
+      </div>
 
-    <div class="answer-row" id="answerRow">
-      <span>x =</span>
-      <input type="text" inputmode="decimal" id="answerInput" placeholder="?">
-      <button class="btn" id="checkBtn" type="button">Check</button>
-      <div class="answer-hint">Round to 2 decimal places.</div>
-    </div>
-
-    <div class="controls-row">
-      <button class="btn ghost small" id="tipsToggle" type="button">💡 How to solve it</button>
-    </div>
-    <div class="tips-panel" id="tipsPanel">
-      <div class="tips-title">A method that always works</div>
-      <ol class="tips-list">
-        <li><span><strong>Spot the hypotenuse first</strong> — it's always the longest side, directly opposite the right angle, and it never touches the right angle.</span></li>
-        <li><span><strong>Label Opposite and Adjacent</strong> relative to the angle you're given — Opposite is across from it, Adjacent is the other side touching it.</span></li>
-        <li><span><strong>Match your two sides to a ratio</strong> — Sin needs Opposite &amp; Hypotenuse, Cos needs Adjacent &amp; Hypotenuse, Tan needs Opposite &amp; Adjacent.</span></li>
-        <li><span><strong>Write the equation</strong>, then rearrange it so the unknown is by itself.</span></li>
-        <li class="tips-aside"><span>Check your calculator is in <strong>degree mode</strong>, not radians — it's the single most common mistake here.</span></li>
-      </ol>
+      <div class="controls-row">
+        <button class="btn ghost small" id="tipsToggle" type="button">💡 How to solve it</button>
+      </div>
+      <div class="tips-panel" id="tipsPanel">
+        <div class="tips-title">Trigonometry — SOH CAH TOA</div>
+        <ol class="tips-list">
+          <li><span><strong>Spot the hypotenuse first</strong> — it's always the longest side, directly opposite the right angle, and it never touches the right angle.</span></li>
+          <li><span><strong>Label Opposite and Adjacent</strong> relative to the angle you're given — Opposite is across from it, Adjacent is the other side touching it.</span></li>
+          <li><span><strong>Match your two sides to a ratio</strong> — Sin needs Opposite &amp; Hypotenuse, Cos needs Adjacent &amp; Hypotenuse, Tan needs Opposite &amp; Adjacent.</span></li>
+          <li><span><strong>Write the equation</strong>, then rearrange it so the unknown is by itself.</span></li>
+          <li class="tips-aside"><span>Check your calculator is in <strong>degree mode</strong>, not radians — it's the single most common mistake here.</span></li>
+        </ol>
+        <div class="tips-title">Pythagoras' Theorem</div>
+        <ol class="tips-list">
+          <li><span><strong>c² = a² + b²</strong> — c is always the hypotenuse (the longest side, opposite the right angle); a and b are the two shorter legs.</span></li>
+          <li><span><strong>Missing the hypotenuse?</strong> Square both legs, add them, then square-root the total.</span></li>
+          <li><span><strong>Missing a leg?</strong> Rearrange first — <strong>a² = c² − b²</strong> — square the hypotenuse, subtract the known leg squared, then square-root what's left.</span></li>
+          <li class="tips-aside"><span>Square first, combine second, root last — doing it out of order is the most common slip.</span></li>
+        </ol>
+      </div>
     </div>
   </div>
 </div>
@@ -343,15 +435,56 @@ function generateScenario(){
   return{...rel,angle,knownVal,trueX:computeX(rel,angle,knownVal)};
 }
 
+// ── PYTHAGORAS SCENARIO MODEL ──
+// The unknown leg is always displayed/labelled as "a" and the known leg
+// as "b" — which physical leg is which doesn't matter mathematically, so
+// fixing the naming this way keeps the form buttons' labels ("a² = c² −
+// b²") correct without ever needing to relabel them per-question.
+function generatePythagScenario(){
+  const unknownVar=Math.random()<0.5?'c':'a';
+  let a,b,c;
+  if(unknownVar==='c'){
+    a=3+Math.floor(Math.random()*15); // 3..17
+    b=3+Math.floor(Math.random()*15);
+    c=Math.sqrt(a*a+b*b);
+  }else{
+    b=3+Math.floor(Math.random()*12); // 3..14 (known leg)
+    c=b+3+Math.floor(Math.random()*12); // known hyp, guaranteed > b
+    a=Math.sqrt(c*c-b*b);
+  }
+  const form=unknownVar==='c'?'sum':'diff';
+  const trueVal=unknownVar==='c'?c:a;
+  return{kind:'pythag',unknownVar,a,b,c,form,trueVal};
+}
+
 // ── STATE ──
+let kind='trig'; // 'trig' | 'pythag' — which flow is currently loaded
+let mode='mixed'; // 'trig' | 'pythag' | 'mixed' — what "New Question" draws from
 let scenario=null;
-let phase='identify'; // 'identify' -> 'ratio' -> 'build' -> 'solve'
+let steps=[]; // workbook trail for the current question
+let phase='identify'; // trig: 'identify' -> 'ratio' -> 'build' -> 'solve'
 let ratioChosen=false;
 let idKnownCorrect=false,idUnknownCorrect=false;
 let buildNumFilled=false,buildDenFilled=false;
 let moveStep=0; // 0 = initial ratio(θ)=NUM/DEN, then advances as chips move
 
-// ── TRIANGLE DIAGRAM ──
+// ── WORKING-OUT PANEL ──
+function recordStep(text){
+  steps.push(text);
+  renderStepHistory();
+}
+function renderStepHistory(){
+  const box=document.getElementById('stepHistory');
+  box.innerHTML='';
+  steps.forEach((text,i)=>{
+    const row=document.createElement('div');
+    row.className='step-row'+(i===steps.length-1?' current':'');
+    row.innerHTML=`<span class="step-num">${i+1}.</span><span class="step-eq">${text}</span>`;
+    box.appendChild(row);
+  });
+}
+
+// ── TRIANGLE DIAGRAM (trig) ──
 // Fixed visual layout regardless of the true angle/side values (real
 // textbook diagrams are routinely "not to scale") — right angle at A,
 // the given angle θ at B, hypotenuse BC.
@@ -373,7 +506,7 @@ function renderTriangle(scn){
     <line x1="${B.x}" y1="${B.y}" x2="${C.x}" y2="${C.y}" class="tri-side"/>
     <polyline points="70,192 88,192 88,210" class="right-angle-mark"/>
     <path d="M 340,210 A 30,30 0 0 1 343.9,195.2" class="angle-arc"/>
-    <text x="322" y="201" class="angle-label">${scn.angle}°</text>
+    <text x="317" y="193" class="angle-label">${scn.angle}°</text>
     ${adjLabel?`<text x="220" y="238" class="side-label ${adjCls}">${adjLabel}</text>`:''}
     ${oppLabel?`<text x="34" y="130" class="side-label ${oppCls}">${oppLabel}</text>`:''}
     ${hypLabel?`<text x="245" y="112" class="side-label ${hypCls}">${hypLabel}</text>`:''}
@@ -381,17 +514,40 @@ function renderTriangle(scn){
   document.getElementById('triSvg').innerHTML=svg;
 }
 
-// ── STEP 1: IDENTIFY THE SIDES ──
+// ── TRIANGLE DIAGRAM (Pythagoras) — no angle, three labelled sides ──
+function renderPythagTriangle(scn){
+  const A={x:70,y:210},B={x:370,y:210},C={x:70,y:40};
+  const aLabel=scn.unknownVar==='a'?'x':String(scn.a);
+  const bLabel=String(scn.b);
+  const cLabel=scn.unknownVar==='c'?'x':String(scn.c);
+  const aCls=scn.unknownVar==='a'?'unknown':'';
+  const cCls=scn.unknownVar==='c'?'unknown':'';
+  const svg=`
+    <polygon points="${A.x},${A.y} ${B.x},${B.y} ${C.x},${C.y}" class="tri-fill"/>
+    <line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" class="tri-side"/>
+    <line x1="${A.x}" y1="${A.y}" x2="${C.x}" y2="${C.y}" class="tri-side"/>
+    <line x1="${B.x}" y1="${B.y}" x2="${C.x}" y2="${C.y}" class="tri-side"/>
+    <polyline points="70,192 88,192 88,210" class="right-angle-mark"/>
+    <text x="220" y="238" class="side-label">${bLabel}</text>
+    <text x="220" y="255" class="side-tag">b</text>
+    <text x="34" y="130" class="side-label ${aCls}">${aLabel}</text>
+    <text x="34" y="147" class="side-tag">a</text>
+    <text x="245" y="112" class="side-label ${cCls}">${cLabel}</text>
+    <text x="245" y="129" class="side-tag">c</text>
+  `;
+  document.getElementById('triSvg').innerHTML=svg;
+}
+
+// ── TRIG STEP 1: IDENTIFY THE SIDES ──
 // Raw O/A/H recognition, checked independently of ratio choice — a
 // student can only get the ratio right once they know what they're
 // looking at.
-const SIDE_NAME={opp:'Opposite',adj:'Adjacent',hyp:'Hypotenuse'};
 function resetIdentifyPanel(){
   document.querySelectorAll('.identify-btn').forEach(b=>{b.classList.remove('correct','wrong');b.disabled=false;});
 }
 document.querySelectorAll('.identify-btn').forEach(b=>{
   b.onclick=()=>{
-    if(phase!=='identify')return;
+    if(kind!=='trig'||phase!=='identify')return;
     const role=b.closest('.identify-btns').dataset.role; // 'known' | 'unknown'
     if(role==='known'&&idKnownCorrect)return;
     if(role==='unknown'&&idUnknownCorrect)return;
@@ -415,13 +571,13 @@ document.querySelectorAll('.identify-btn').forEach(b=>{
   };
 });
 
-// ── STEP 2: RATIO PICKER ──
+// ── TRIG STEP 2: RATIO PICKER ──
 function resetRatioPicker(){
   document.querySelectorAll('.ratio-btn').forEach(b=>b.classList.remove('correct','wrong'));
 }
 document.querySelectorAll('.ratio-btn').forEach(b=>{
   b.onclick=()=>{
-    if(phase!=='ratio'||ratioChosen)return;
+    if(kind!=='trig'||phase!=='ratio'||ratioChosen)return;
     if(b.dataset.r===scenario.ratio){
       b.classList.add('correct');
       ratioChosen=true;
@@ -436,11 +592,7 @@ document.querySelectorAll('.ratio-btn').forEach(b=>{
   };
 });
 
-// ── STEP 3: DRAG THE VALUES INTO THE RATIO TEMPLATE ──
-// Two draggable chips (the known number and "x") get placed into the
-// numerator/denominator blanks of "ratio(θ) = ⬚ ⁄ ⬚" — physically
-// placing the value reinforces which side the ratio's definition puts on
-// top, rather than the substituted equation just appearing pre-filled.
+// ── TRIG STEP 3: DRAG THE VALUES INTO THE RATIO TEMPLATE ──
 function showBuildPanel(){
   document.getElementById('buildPanel').style.display='flex';
   buildNumFilled=false;buildDenFilled=false;
@@ -499,7 +651,11 @@ function handleDrop(zone,chip,isX){
     chip.remove();
     if(slot==='num')buildNumFilled=true;else buildDenFilled=true;
     if(buildNumFilled&&buildDenFilled){
-      setStatus('ok','Equation built! Now rearrange it to get x by itself.');
+      const builtEq=scenario.xIsNumerator
+        ?`${ratioLabel()} = x ⁄ ${scenario.knownVal}`
+        :`${ratioLabel()} = ${scenario.knownVal} ⁄ x`;
+      recordStep(builtEq);
+      setStatus('ok','Equation built! Now drag to rearrange it.');
       setTimeout(()=>{
         phase='solve';
         document.getElementById('buildPanel').style.display='none';
@@ -514,76 +670,206 @@ function handleDrop(zone,chip,isX){
   }
 }
 
-// ── EQUATION STAGE (rearrange by clicking the highlighted, atomic chip) ──
+// ── TRIG STEP 4: DRAG TO REARRANGE ──
+// Each move is a single drag across the equals sign, same as the rest of
+// the app's algebra tools — the term (including the whole atomic trig
+// chip, never split) always moves as one physical unit.
 function ratioLabel(){return`${scenario.ratio}(${scenario.angle}°)`;}
 function renderEquation(){
   const stage=document.getElementById('eqStage');
-  const trigChip=(movable)=>`<span class="trig-chip${movable?' movable':''}" ${movable?'id="trigChip"':''}>${ratioLabel()}</span>`;
+  const trigChipHTML=movable=>`<span class="trig-chip${movable?' movable':''}"${movable?' data-drag="1"':''}>${ratioLabel()}</span>`;
   let html='';
   if(moveStep===0){
     const num=scenario.xIsNumerator?'<span class="term x-term">x</span>':`<span class="term">${scenario.knownVal}</span>`;
-    // At step 0 the denominator is always what moves first (multiplying
-    // both sides by it) — whichever value that is, numeric or x.
-    const den=scenario.xIsNumerator?`<span class="term movable" id="denChip">${scenario.knownVal}</span>`:'<span class="term movable x-term" id="denChip">x</span>';
-    html=`<div class="eq-line chalkin">${trigChip(false)}<span class="eq-eq">=</span>
-      <span class="frac"><span class="frac-top">${num}</span><span class="frac-line"></span><span class="frac-bot">${den}</span></span>
+    const den=scenario.xIsNumerator
+      ?`<span class="term movable" data-drag="1">${scenario.knownVal}</span>`
+      :'<span class="term movable x-term" data-drag="1">x</span>';
+    html=`<div class="eq-line chalkin">
+      <span class="eq-lhs" id="eqLHS">${trigChipHTML(false)}</span>
+      <span class="eq-eq">=</span>
+      <span class="eq-rhs" id="eqRHS"><span class="frac"><span class="frac-top">${num}</span><span class="frac-line"></span><span class="frac-bot">${den}</span></span></span>
     </div>`;
   }else if(moveStep===1&&scenario.xIsNumerator){
-    html=`<div class="eq-line chalkin"><span class="term x-term">x</span><span class="eq-eq">=</span>${scenario.knownVal}<span class="eq-times">×</span>${trigChip(false)}</div>`;
+    html=`<div class="eq-line chalkin"><span class="eq-lhs" id="eqLHS"><span class="term x-term">x</span></span><span class="eq-eq">=</span><span class="eq-rhs" id="eqRHS">${scenario.knownVal}<span class="eq-times">×</span>${trigChipHTML(false)}</span></div>`;
+    recordStep(`x = ${scenario.knownVal} × ${ratioLabel()}`);
     finishToAnswer();
   }else if(moveStep===1&&!scenario.xIsNumerator){
-    html=`<div class="eq-line chalkin"><span class="term x-term">x</span><span class="eq-times">×</span>${trigChip(true)}<span class="eq-eq">=</span>${scenario.knownVal}</div>`;
+    html=`<div class="eq-line chalkin"><span class="eq-lhs" id="eqLHS"><span class="term x-term">x</span><span class="eq-times">×</span>${trigChipHTML(true)}</span><span class="eq-eq">=</span><span class="eq-rhs" id="eqRHS">${scenario.knownVal}</span></div>`;
   }else if(moveStep===2){
-    html=`<div class="eq-line chalkin"><span class="term x-term">x</span><span class="eq-eq">=</span>${scenario.knownVal}<span class="eq-times">÷</span>${trigChip(false)}</div>`;
+    html=`<div class="eq-line chalkin"><span class="eq-lhs" id="eqLHS"><span class="term x-term">x</span></span><span class="eq-eq">=</span><span class="eq-rhs" id="eqRHS">${scenario.knownVal}<span class="eq-times">÷</span>${trigChipHTML(false)}</span></div>`;
+    recordStep(`x = ${scenario.knownVal} ÷ ${ratioLabel()}`);
     finishToAnswer();
   }
   stage.innerHTML=html;
-  const den=document.getElementById('denChip');
-  if(den)den.onclick=()=>{moveStep=1;renderEquation();};
-  const trig=document.getElementById('trigChip');
-  if(trig)trig.onclick=()=>{moveStep=2;renderEquation();};
+  const draggable=stage.querySelector('[data-drag="1"]');
+  if(draggable){
+    const fromSide=draggable.closest('#eqLHS')?'lhs':'rhs';
+    draggable.onmousedown=e=>startChipDrag(e,draggable,fromSide,()=>{moveStep++;renderEquation();});
+  }
+}
+function startChipDrag(e,chip,fromSide,onDrop){
+  e.preventDefault();
+  const ghost=document.createElement('div');
+  ghost.className='build-ghost';
+  ghost.textContent=chip.textContent;
+  ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';
+  document.body.appendChild(ghost);
+  chip.classList.add('dragging');
+  const otherEl=document.getElementById(fromSide==='lhs'?'eqRHS':'eqLHS');
+  const mm=ev=>{
+    ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';
+    const r=otherEl.getBoundingClientRect();
+    const over=ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom;
+    otherEl.classList.toggle('drop-ready',over);
+  };
+  const mu=ev=>{
+    document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);
+    ghost.remove();
+    otherEl.classList.remove('drop-ready');
+    const r=otherEl.getBoundingClientRect();
+    const over=ev.clientX>r.left&&ev.clientX<r.right&&ev.clientY>r.top&&ev.clientY<r.bottom;
+    if(over)onDrop();else chip.classList.remove('dragging');
+  };
+  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
 }
 function finishToAnswer(){
+  document.getElementById('answerVarLabel').textContent='x';
+  document.getElementById('answerHintText').textContent='Round to 2 decimal places.';
   document.getElementById('answerRow').style.display='flex';
   document.getElementById('answerInput').value='';
   document.getElementById('answerInput').focus();
   setStatus('','Now calculate x with your calculator.');
 }
 
-// ── ANSWER CHECK ──
+// ── PYTHAGORAS STEP 1: PICK THE FORM ──
+function resetFormPicker(){
+  document.querySelectorAll('.form-btn').forEach(b=>b.classList.remove('correct','wrong'));
+}
+document.querySelectorAll('.form-btn').forEach(b=>{
+  b.onclick=()=>{
+    if(kind!=='pythag'||phase!=='pythag-form')return;
+    if(b.dataset.form===scenario.form){
+      b.classList.add('correct');
+      phase='pythag-substitute';
+      recordStep(b.textContent);
+      setStatus('ok','Correct form! Now substitute the values you know.');
+      showPythagSubstitute();
+    }else{
+      b.classList.add('wrong');
+      setTimeout(()=>b.classList.remove('wrong'),350);
+      setStatus('err',"Not quite — which side are you solving for, the hypotenuse or a leg?");
+    }
+  };
+});
+
+// ── PYTHAGORAS STEP 2: SUBSTITUTE (TYPE) ──
+function showPythagSubstitute(){
+  document.getElementById('pythagFormPicker').style.display='none';
+  document.getElementById('pythagSubstitute').style.display='flex';
+  const opSymbol=scenario.form==='sum'?'+':'−';
+  const lhsVar=scenario.form==='sum'?'c':'a';
+  document.getElementById('pythagSubLine').innerHTML=
+    `<span class="pythag-var">${lhsVar}²</span><span class="eq-eq">=</span>`+
+    `<input type="text" inputmode="numeric" class="sub-input" id="sub1" placeholder="?">²`+
+    `<span class="eq-op">${opSymbol}</span>`+
+    `<input type="text" inputmode="numeric" class="sub-input" id="sub2" placeholder="?">²`;
+  ['sub1','sub2'].forEach(id=>{
+    const inp=document.getElementById(id);
+    inp.value='';
+    inp.addEventListener('input',()=>{
+      const digits=inp.value.replace(/[^0-9.]/g,'');
+      if(digits!==inp.value)inp.value=digits;
+    });
+  });
+  document.getElementById('sub1').focus();
+}
+document.getElementById('subCheckBtn').onclick=()=>{
+  if(kind!=='pythag'||phase!=='pythag-substitute')return;
+  const v1=parseFloat(document.getElementById('sub1').value);
+  const v2=parseFloat(document.getElementById('sub2').value);
+  if(isNaN(v1)||isNaN(v2)){setStatus('err','Type both numbers first.');return;}
+  const correct=scenario.form==='sum'
+    ?((v1===scenario.a&&v2===scenario.b)||(v1===scenario.b&&v2===scenario.a))
+    :(v1===scenario.c&&v2===scenario.b);
+  if(correct){
+    phase='pythag-solve';
+    const label=scenario.form==='sum'?`c² = ${v1}² + ${v2}²`:`a² = ${v1}² − ${v2}²`;
+    recordStep(label);
+    setStatus('ok','Substituted correctly! Now solve for the unknown.');
+    showPythagSolve(v1,v2);
+  }else{
+    setStatus('err',"Check the values — they don't match what's given in the triangle.");
+  }
+};
+
+// ── PYTHAGORAS STEP 3: SOLVE ──
+function showPythagSolve(v1,v2){
+  document.getElementById('pythagSubstitute').style.display='none';
+  document.getElementById('pythagSolve').style.display='flex';
+  const combined=scenario.form==='sum'?(v1*v1+v2*v2):(v1*v1-v2*v2);
+  const lhsVar=scenario.form==='sum'?'c':'a';
+  document.getElementById('pythagSolveLine').innerHTML=scenario.form==='sum'
+    ?`<span class="pythag-var">c²</span><span class="eq-eq">=</span>${v1}² + ${v2}² = ${combined}`
+    :`<span class="pythag-var">a²</span><span class="eq-eq">=</span>${v1}² − ${v2}² = ${combined}`;
+  document.getElementById('answerVarLabel').textContent=lhsVar;
+  document.getElementById('answerHintText').textContent=`Take the square root: ${lhsVar} = √${combined}. Round to 2 decimal places.`;
+  document.getElementById('answerRow').style.display='flex';
+  document.getElementById('answerInput').value='';
+  document.getElementById('answerInput').focus();
+  setStatus('','Now take the square root to find '+lhsVar+'.');
+}
+
+// ── ANSWER CHECK (shared by trig and Pythagoras) ──
 function checkAnswer(){
   const val=parseFloat(document.getElementById('answerInput').value);
   if(isNaN(val)){setStatus('err','Type a number first.');return;}
-  const diff=Math.abs(val-scenario.trueX);
+  const trueVal=kind==='trig'?scenario.trueX:scenario.trueVal;
+  const varName=kind==='trig'?'x':scenario.unknownVar;
+  const diff=Math.abs(val-trueVal);
   if(diff<0.06){
     setStatus('ok','Correct!');
-    document.getElementById('correctMsg').textContent=`x ≈ ${scenario.trueX.toFixed(2)} — nice work.`;
+    document.getElementById('correctMsg').textContent=`${varName} ≈ ${trueVal.toFixed(2)} — nice work.`;
+    recordStep(`${varName} = ${trueVal.toFixed(2)}`);
     document.getElementById('correctModal').style.display='flex';
     return;
   }
-  const radianVal=scenario.xIsNumerator
-    ?scenario.knownVal*trigFnRadianMistake(scenario.ratio,scenario.angle)
-    :scenario.knownVal/trigFnRadianMistake(scenario.ratio,scenario.angle);
-  if(Math.abs(val-radianVal)<0.06){
-    setStatus('err','Close — but check your calculator is in DEGREE mode, not radians!');
-  }else{
-    setStatus('err','Not quite — check your working and try again.');
+  if(kind==='trig'){
+    const radianVal=scenario.xIsNumerator
+      ?scenario.knownVal*trigFnRadianMistake(scenario.ratio,scenario.angle)
+      :scenario.knownVal/trigFnRadianMistake(scenario.ratio,scenario.angle);
+    if(Math.abs(val-radianVal)<0.06){
+      setStatus('err','Close — but check your calculator is in DEGREE mode, not radians!');
+      return;
+    }
   }
+  setStatus('err','Not quite — check your working and try again.');
 }
 document.getElementById('checkBtn').onclick=checkAnswer;
 document.getElementById('answerInput').addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer();});
 
 // ── STATUS ──
-function setStatus(kind,msg){
+function setStatus(kindStyle,msg){
   const dot=document.getElementById('sDot'),txt=document.getElementById('sTxt');
-  dot.className='s-dot'+(kind==='ok'?' ok':kind==='err'?' err':'');
-  txt.className='s-txt'+(kind==='ok'?' ok':kind==='err'?' err':'');
+  dot.className='s-dot'+(kindStyle==='ok'?' ok':kindStyle==='err'?' err':'');
+  txt.className='s-txt'+(kindStyle==='ok'?' ok':kindStyle==='err'?' err':'');
   txt.textContent=msg;
 }
 
 // ── QUESTION LIFECYCLE ──
-function loadScenario(scn){
+function hideAllPanels(){
+  document.getElementById('identifyPanel').style.display='none';
+  document.getElementById('ratioPicker').style.display='none';
+  document.getElementById('buildPanel').style.display='none';
+  document.getElementById('eqStage').innerHTML='';
+  document.getElementById('pythagFormPicker').style.display='none';
+  document.getElementById('pythagSubstitute').style.display='none';
+  document.getElementById('pythagSolve').style.display='none';
+  document.getElementById('answerRow').style.display='none';
+}
+function loadTrigScenario(scn){
+  kind='trig';
   scenario=scn;
+  steps=[];renderStepHistory();
   phase='identify';
   ratioChosen=false;
   idKnownCorrect=false;idUnknownCorrect=false;
@@ -592,15 +878,39 @@ function loadScenario(scn){
   resetIdentifyPanel();
   resetRatioPicker();
   renderTriangle(scenario);
+  hideAllPanels();
   document.getElementById('idKnownLabel').textContent=scenario.knownVal;
   document.getElementById('identifyPanel').style.display='flex';
-  document.getElementById('ratioPicker').style.display='none';
-  document.getElementById('buildPanel').style.display='none';
-  document.getElementById('eqStage').innerHTML='';
-  document.getElementById('answerRow').style.display='none';
   setStatus('','Which side is the labelled value, and which is x?');
 }
-document.getElementById('newBtn').onclick=()=>loadScenario(generateScenario());
+function loadPythagScenario(scn){
+  kind='pythag';
+  scenario=scn;
+  steps=[];renderStepHistory();
+  phase='pythag-form';
+  resetFormPicker();
+  renderPythagTriangle(scenario);
+  hideAllPanels();
+  document.getElementById('pythagFormPicker').style.display='flex';
+  setStatus('','Pick the form that matches what you know and what you want.');
+}
+function pickKind(){
+  if(mode==='trig')return'trig';
+  if(mode==='pythag')return'pythag';
+  return Math.random()<0.5?'trig':'pythag';
+}
+function loadNext(){
+  const k=pickKind();
+  if(k==='trig')loadTrigScenario(generateScenario());
+  else loadPythagScenario(generatePythagScenario());
+}
+document.getElementById('newBtn').onclick=loadNext;
+document.querySelectorAll('.ms-btn').forEach(b=>{
+  b.onclick=()=>{
+    mode=b.dataset.mode;
+    document.querySelectorAll('.ms-btn').forEach(x=>x.classList.toggle('active',x===b));
+  };
+});
 document.getElementById('cLoadBtn').onclick=()=>{
   const angle=parseFloat(document.getElementById('cAngle').value);
   const knownVal=parseFloat(document.getElementById('cKnownVal').value);
@@ -610,11 +920,11 @@ document.getElementById('cLoadBtn').onclick=()=>{
   if(!(knownVal>0)){setStatus('err','Known side must be a positive number.');return;}
   const rel=deriveRelation(knownSide,unknownSide);
   if(!rel){setStatus('err','The known and unknown sides must be different.');return;}
-  loadScenario({...rel,angle,knownVal,trueX:computeX(rel,angle,knownVal)});
+  loadTrigScenario({...rel,angle,knownVal,trueX:computeX(rel,angle,knownVal)});
 };
 document.getElementById('correctModalOk').onclick=()=>{
   document.getElementById('correctModal').style.display='none';
-  loadScenario(generateScenario());
+  loadNext();
 };
 
 // ── TIPS TOGGLE ──
@@ -625,7 +935,7 @@ document.getElementById('tipsToggle').onclick=()=>{
   document.getElementById('tipsToggle').textContent=tipsVisible?'💡 Hide tips':'💡 How to solve it';
 };
 
-loadScenario(generateScenario());
+loadNext();
 </script>
 </body>
 </html>
