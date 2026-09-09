@@ -36,6 +36,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
 .ms-btn.active{background:var(--gold);color:var(--wood3);}
 .ms-btn:not(.active):hover{color:var(--chalk);background:rgba(255,255,255,.08);}
 
+/* For a student who's already solved it in their book and just wants the
+   scaffolding out of the way — skips straight to the answer box. */
+.quick-toggle{
+  display:flex;align-items:center;gap:.4rem;font-size:.76rem;color:var(--chalk2);cursor:pointer;user-select:none;
+  background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:6px 12px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.quick-toggle:hover{background:rgba(255,255,255,.06);}
+.quick-toggle input{accent-color:var(--gold);width:14px;height:14px;cursor:pointer;}
+.quick-toggle.active{border-color:var(--gold);background:rgba(232,200,64,.12);color:var(--chalk);}
+
 .custom-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:0 0 .75rem;font-size:.8rem;color:var(--chalk2);}
 .custom-row label{display:flex;align-items:center;gap:.35rem;}
 .custom-row input,.custom-row select{
@@ -258,6 +269,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
       <button class="ms-btn" data-mode="pythag" type="button">Pythagoras</button>
       <button class="ms-btn active" data-mode="mixed" type="button">Mixed</button>
     </div>
+    <label class="quick-toggle" id="quickToggle">
+      <input type="checkbox" id="quickCheckToggle">
+      <span>⚡ No training wheels — just check my answer</span>
+    </label>
     <span class="spacer"></span>
     <button class="btn" id="newBtn" type="button">🎲 New Question</button>
   </div>
@@ -422,13 +437,23 @@ function computeX(rel,angle,knownVal){
   const t=trigFn(rel.ratio,angle);
   return rel.xIsNumerator?knownVal*t:knownVal/t;
 }
+// Plain independent randomness is mathematically fair but reads as
+// "stuck" to a student when it happens to repeat the same shape a few
+// times in a row — a real, reported complaint, not just a feeling.
+// Track the last pick and refuse an exact repeat of a (small) space of
+// choices, so variety is guaranteed rather than merely likely.
+let lastTrigPair=null;
 function generateScenario(){
   const sides=['opp','adj','hyp'];
-  let unknownSide,knownSide;
+  let unknownSide,knownSide,pair;
+  let attempts=0;
   do{
     unknownSide=sides[Math.floor(Math.random()*3)];
     knownSide=sides[Math.floor(Math.random()*3)];
-  }while(unknownSide===knownSide);
+    pair=`${knownSide}-${unknownSide}`;
+    attempts++;
+  }while(unknownSide===knownSide||(pair===lastTrigPair&&attempts<8));
+  lastTrigPair=pair;
   const rel=deriveRelation(knownSide,unknownSide);
   const angle=15+Math.floor(Math.random()*61); // 15..75
   const knownVal=5+Math.floor(Math.random()*16); // 5..20
@@ -440,8 +465,15 @@ function generateScenario(){
 // as "b" — which physical leg is which doesn't matter mathematically, so
 // fixing the naming this way keeps the form buttons' labels ("a² = c² −
 // b²") correct without ever needing to relabel them per-question.
+let lastPythagVar=null,pythagVarStreak=0;
 function generatePythagScenario(){
-  const unknownVar=Math.random()<0.5?'c':'a';
+  let unknownVar=Math.random()<0.5?'c':'a';
+  // Only a binary choice, so a retry loop can't force variety the way it
+  // can for the trig side-pair — cap the streak directly instead: two of
+  // the same in a row is fine, a third is forced to switch.
+  if(unknownVar===lastPythagVar&&pythagVarStreak>=1)unknownVar=unknownVar==='c'?'a':'c';
+  pythagVarStreak=(unknownVar===lastPythagVar)?pythagVarStreak+1:0;
+  lastPythagVar=unknownVar;
   let a,b,c;
   if(unknownVar==='c'){
     a=3+Math.floor(Math.random()*15); // 3..17
@@ -825,8 +857,12 @@ function checkAnswer(){
   if(isNaN(val)){setStatus('err','Type a number first.');return;}
   const trueVal=kind==='trig'?scenario.trueX:scenario.trueVal;
   const varName=kind==='trig'?'x':scenario.unknownVar;
-  const diff=Math.abs(val-trueVal);
-  if(diff<0.06){
+  // "Round to 2 decimal places" means exactly that — match the value at
+  // that precision, not within some wide fuzzy band (0.06 was letting
+  // answers a full cent-and-a-half off read as correct).
+  const trueRounded=Math.round(trueVal*100)/100;
+  const valRounded=Math.round(val*100)/100;
+  if(valRounded===trueRounded){
     setStatus('ok','Correct!');
     document.getElementById('correctMsg').textContent=`${varName} ≈ ${trueVal.toFixed(2)} — nice work.`;
     recordStep(`${varName} = ${trueVal.toFixed(2)}`);
@@ -837,10 +873,18 @@ function checkAnswer(){
     const radianVal=scenario.xIsNumerator
       ?scenario.knownVal*trigFnRadianMistake(scenario.ratio,scenario.angle)
       :scenario.knownVal/trigFnRadianMistake(scenario.ratio,scenario.angle);
-    if(Math.abs(val-radianVal)<0.06){
+    if(Math.abs(val-radianVal)<0.03){
       setStatus('err','Close — but check your calculator is in DEGREE mode, not radians!');
       return;
     }
+  }
+  // In the right ballpark but not matching at 2dp — likely rounded an
+  // intermediate step instead of only the final answer. Worth a distinct
+  // nudge rather than the generic "check your working", without just
+  // handing over the exact value.
+  if(Math.abs(val-trueVal)<0.1){
+    setStatus('err','Close — check your rounding and try again.');
+    return;
   }
   setStatus('err','Not quite — check your working and try again.');
 }
@@ -866,11 +910,26 @@ function hideAllPanels(){
   document.getElementById('pythagSolve').style.display='none';
   document.getElementById('answerRow').style.display='none';
 }
+// "No training wheels" — skip straight to the answer box for a student
+// who's already solved it in their book and just wants it checked.
+let quickCheck=false;
+document.getElementById('quickCheckToggle').addEventListener('change',e=>{
+  quickCheck=e.target.checked;
+  document.getElementById('quickToggle').classList.toggle('active',quickCheck);
+});
+function showAnswerOnly(varName){
+  phase='quick';
+  document.getElementById('answerVarLabel').textContent=varName;
+  document.getElementById('answerHintText').textContent='Round to 2 decimal places.';
+  document.getElementById('answerRow').style.display='flex';
+  document.getElementById('answerInput').value='';
+  document.getElementById('answerInput').focus();
+  setStatus('','Solved it already? Type '+varName+' to check.');
+}
 function loadTrigScenario(scn){
   kind='trig';
   scenario=scn;
   steps=[];renderStepHistory();
-  phase='identify';
   ratioChosen=false;
   idKnownCorrect=false;idUnknownCorrect=false;
   buildNumFilled=false;buildDenFilled=false;
@@ -879,6 +938,8 @@ function loadTrigScenario(scn){
   resetRatioPicker();
   renderTriangle(scenario);
   hideAllPanels();
+  if(quickCheck){showAnswerOnly('x');return;}
+  phase='identify';
   document.getElementById('idKnownLabel').textContent=scenario.knownVal;
   document.getElementById('identifyPanel').style.display='flex';
   setStatus('','Which side is the labelled value, and which is x?');
@@ -887,17 +948,25 @@ function loadPythagScenario(scn){
   kind='pythag';
   scenario=scn;
   steps=[];renderStepHistory();
-  phase='pythag-form';
   resetFormPicker();
   renderPythagTriangle(scenario);
   hideAllPanels();
+  if(quickCheck){showAnswerOnly(scenario.unknownVar);return;}
+  phase='pythag-form';
   document.getElementById('pythagFormPicker').style.display='flex';
   setStatus('','Pick the form that matches what you know and what you want.');
 }
+let lastPickedKind=null,kindStreak=0;
 function pickKind(){
   if(mode==='trig')return'trig';
   if(mode==='pythag')return'pythag';
-  return Math.random()<0.5?'trig':'pythag';
+  let k=Math.random()<0.5?'trig':'pythag';
+  // Same streak-cap as the scenario generators below: two of the same
+  // kind in a row is normal variety, a third gets forced to switch.
+  if(k===lastPickedKind&&kindStreak>=1)k=k==='trig'?'pythag':'trig';
+  kindStreak=(k===lastPickedKind)?kindStreak+1:0;
+  lastPickedKind=k;
+  return k;
 }
 function loadNext(){
   const k=pickKind();
