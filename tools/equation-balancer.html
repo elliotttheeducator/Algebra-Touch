@@ -290,6 +290,20 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
 .ck-load:hover{ background:#d8a800; }
 #kbToggle.active{ background:rgba(232,200,64,.18); color:var(--gold); border-color:rgba(232,200,64,.35); }
 
+/* Letter picker — a small popover of a-z so a rearranging question like
+   a=(v_f-v_i)/t can be built by touch alone, not just x/y/z presets.
+   Fixed-positioned near the toggle button rather than another grid row,
+   so it doesn't grow the keyboard's fixed max-height. */
+.ck-var.active{ background:rgba(232,200,64,.18); color:var(--gold); border-color:rgba(232,200,64,.35); }
+.letter-picker{
+  position:fixed; z-index:60; display:none; grid-template-columns:repeat(7,1fr); gap:3px;
+  background:#161616; border:1px solid #333; border-radius:8px; padding:7px;
+  box-shadow:0 10px 30px rgba(0,0,0,.55); width:238px;
+}
+.letter-picker.open{ display:grid; }
+.letter-picker .ck{ height:32px; font-size:.92rem; }
+.letter-picker .ck-op{ font-size:1rem; }
+
 /* ── MODE SWITCH ── */
 .mode-switch{display:flex;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px;gap:2px;flex-shrink:0;}
 .ms-btn{background:transparent;border:none;color:var(--chalk3);padding:6px 14px;border-radius:16px;font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;transition:background .15s,color .15s;}
@@ -413,8 +427,8 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     <button class="ck ck-digit" data-ins="0">0</button>
     <button class="ck ck-digit" data-ins=".">.</button>
     <button class="ck ck-var" data-ins="x">x</button>
-    <button class="ck ck-var" data-ins="y">y</button>
-    <button class="ck ck-var" data-ins="z">z</button>
+    <button class="ck ck-var" data-ins="_">x<sub style="font-size:.75em">n</sub></button>
+    <button class="ck ck-var" id="letterPickerBtn" onclick="toggleLetterPicker()">abc</button>
     <button class="ck ck-del" onclick="calcBackspace()">⌫</button>
 
     <button class="ck ck-fn" style="grid-column:span 2" onclick="calcInsertSin()">sin</button>
@@ -428,6 +442,7 @@ kbd{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);bo
     <button class="ck ck-load" style="grid-column:span 2" onclick="doLoad()">LOAD</button>
   </div>
 </div>
+<div class="letter-picker" id="letterPicker"></div>
 
 </div>
 
@@ -2483,6 +2498,44 @@ function calcInsertFunc(name){
 function calcInsertSin(){calcInsertFunc('sin');}
 function calcInsertCos(){calcInsertFunc('cos');}
 function calcInsertTan(){calcInsertFunc('tan');}
+
+// ── LETTER PICKER ── (a-z popover so any pronumeral — not just x/y/z —
+// can be typed by touch; combined with the "_" key above it also builds
+// subscripted names like v_f, matching what the parser already accepts.)
+let letterPickerBuilt=false;
+function buildLetterPicker(){
+  const panel=document.getElementById('letterPicker');
+  const letters='abcdefghijklmnopqrstuvwxyz'.split('');
+  panel.innerHTML=letters.map(l=>`<button class="ck ck-var" onclick="calcInsert('${l}')">${l}</button>`).join('');
+  letterPickerBuilt=true;
+}
+function toggleLetterPicker(){
+  if(!letterPickerBuilt)buildLetterPicker();
+  const panel=document.getElementById('letterPicker');
+  const btn=document.getElementById('letterPickerBtn');
+  const opening=!panel.classList.contains('open');
+  if(opening){
+    const r=btn.getBoundingClientRect();
+    const left=Math.min(r.left,window.innerWidth-246);
+    panel.style.left=Math.max(6,left)+'px';
+    panel.style.top=(r.bottom+4)+'px';
+    panel.classList.add('open');
+    btn.classList.add('active');
+  }else{
+    panel.classList.remove('open');
+    btn.classList.remove('active');
+  }
+}
+// Stays open across other calc-key presses (an operator, then a letter,
+// then another operator is exactly the "a=(v_f-v_i)/t" workflow this
+// exists for) — only a click truly outside the whole keyboard dismisses it.
+document.addEventListener('mousedown',e=>{
+  const panel=document.getElementById('letterPicker');
+  if(!panel.classList.contains('open'))return;
+  if(e.target.closest('#letterPicker')||e.target.closest('#calcKeyboard'))return;
+  panel.classList.remove('open');
+  document.getElementById('letterPickerBtn').classList.remove('active');
+});
 
 // ── PREVIEW RENDERER ────────────────────────────────────────
 function syncCalcDisplay(){
